@@ -62,6 +62,9 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 30,
+        }}
       >
         {/* HEADER */}
         <View style={styles.header}>
@@ -123,7 +126,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* BOTON */}
+        {/* BOTON REPORTES */}
         <TouchableOpacity
           style={styles.reportButton}
         >
@@ -137,7 +140,7 @@ export default function HomeScreen() {
           />
         </TouchableOpacity>
 
-        {/* NUEVA VENTA */}
+        {/* REGISTRAR VENTA */}
         <TouchableOpacity
           style={styles.newSaleCard}
         >
@@ -185,7 +188,8 @@ export default function HomeScreen() {
             </Text>
 
             <Text style={styles.insightTitle}>
-              Tu mejor día fue el Sábado 💡
+              Tu mejor día fue el
+              Sábado 💡
             </Text>
 
             <Text style={styles.insightText}>
@@ -287,59 +291,7 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
-        <View style={{ height: 120 }} />
       </ScrollView>
-
-      {/* BOTTOM NAV */}
-      <View style={styles.bottomBar}>
-        <View style={styles.navItem}>
-          <Text style={styles.activeNav}>
-            ⌂
-          </Text>
-          <Text
-            style={styles.activeNavText}
-          >
-            INICIO
-          </Text>
-        </View>
-
-        <View style={styles.navItem}>
-          <Text style={styles.navIcon}>
-            ▣
-          </Text>
-          <Text style={styles.navText}>
-            VENTAS
-          </Text>
-        </View>
-
-        <View style={styles.navItem}>
-          <Text style={styles.navIcon}>
-            ◫
-          </Text>
-          <Text style={styles.navText}>
-            REPORTES
-          </Text>
-        </View>
-
-        <View style={styles.navItem}>
-          <Text style={styles.navIcon}>
-            ↺
-          </Text>
-          <Text style={styles.navText}>
-            HISTORIAL
-          </Text>
-        </View>
-
-        <View style={styles.navItem}>
-          <Text style={styles.navIcon}>
-            ⌘
-          </Text>
-          <Text style={styles.navText}>
-            MÁS
-          </Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -656,50 +608,5 @@ const styles = StyleSheet.create({
     color: "#8A8EA5",
     fontWeight: "800",
     textAlign: "right",
-  },
-
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
-
-    height: 72,
-
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-
-  navItem: {
-    alignItems: "center",
-  },
-
-  activeNav: {
-    fontSize: 22,
-    color: "#C2188B",
-  },
-
-  activeNavText: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#C2188B",
-  },
-
-  navIcon: {
-    fontSize: 20,
-    color: "#1F3C77",
-  },
-
-  navText: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#1F3C77",
   },
 });
