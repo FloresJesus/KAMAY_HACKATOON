@@ -1,6 +1,5 @@
 import { Link, usePathname } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
-import type { ReactNode } from "react";
 import {
   BarChart3,
   History,
@@ -9,6 +8,7 @@ import {
   Package,
   ReceiptText,
 } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type NavItem = {
