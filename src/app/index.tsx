@@ -13,298 +13,207 @@ import {
   Plus,
   Power,
 } from "lucide-react-native";
+import { useResponsive } from "../hooks/use-responsive";
 
 export default function HomeScreen() {
+  const { isMobile, isDesktop } = useResponsive();
+  const horizontalMargin = isMobile ? 22 : 32;
+
   const movimientos = [
     {
       id: 1,
       nombre: "Almuerzo familiar",
-      detalle:
-        "EFECTIVO · TIENDA · 16-MAY, 10:05 A. M.",
+      detalle: "EFECTIVO · TIENDA · 16-MAY, 10:05 A. M.",
       monto: "+Bs 35,00",
       categoria: "ALIMENTOS",
     },
     {
       id: 2,
       nombre: "Refresco x2",
-      detalle:
-        "QR · TIENDA · 16-MAY, 09:00 A. M.",
+      detalle: "QR · TIENDA · 16-MAY, 09:00 A. M.",
       monto: "+Bs 14,00",
       categoria: "ALIMENTOS",
     },
     {
       id: 3,
       nombre: "Manualidad bordada",
-      detalle:
-        "QR · FERIA · 16-MAY, 07:30 A. M.",
+      detalle: "QR · FERIA · 16-MAY, 07:30 A. M.",
       monto: "+Bs 80,00",
       categoria: "ARTESANÍA",
     },
     {
       id: 4,
       nombre: "Arroz 5kg",
-      detalle:
-        "EFECTIVO · TIENDA · 15-MAY, 12:20 P. M.",
+      detalle: "EFECTIVO · TIENDA · 15-MAY, 12:20 P. M.",
       monto: "+Bs 45,00",
       categoria: "ABARROTES",
     },
     {
       id: 5,
       nombre: "Corte de cabello",
-      detalle:
-        "EFECTIVO · TIENDA · 14-MAY, 02:05 P. M.",
+      detalle: "EFECTIVO · TIENDA · 14-MAY, 02:05 P. M.",
       monto: "+Bs 25,00",
       categoria: "BELLEZA",
     },
+    {
+      id: 6,
+      nombre: "Reparación celular",
+      detalle: "TRANSFERENCIA · TIENDA · 13-MAY, 08:00 A. M.",
+      monto: "+Bs 120,00",
+      categoria: "SERVICIOS",
+    }
   ];
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 30,
-        }}
-      >
-        {/* HEADER */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>
-            MI NEGOCIO
-          </Text>
-
-          <TouchableOpacity>
-            <Power
-              size={22}
-              color="#FF1E8E"
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* CARD PRINCIPAL */}
-        <View style={styles.mainCard}>
-          <View style={styles.mainBar} />
-
-          <View style={styles.mainContent}>
-            <Text style={styles.smallPink}>
+    <View style={styles.screenWrapper}>
+      <View style={[styles.container, { maxWidth: isDesktop ? 640 : "100%" }]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 30,
+          }}
+        >
+          <View style={[styles.header, { paddingHorizontal: horizontalMargin }]}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
               MI NEGOCIO
             </Text>
 
-            <Text style={styles.businessName}>
-              Emprendimiento Tinka
-            </Text>
-
-            <Text style={styles.salesLabel}>
-              VENTAS DE HOY
-            </Text>
-
-            <Text style={styles.salesAmount}>
-              Bs 129,00
-            </Text>
-          </View>
-        </View>
-
-        {/* ABONOS Y GASTOS */}
-        <View style={styles.row}>
-          <View style={styles.smallCard}>
-            <Text style={styles.smallLabel}>
-              ABONOS
-            </Text>
-
-            <Text style={styles.greenText}>
-              +Bs 129,00
-            </Text>
-          </View>
-
-          <View style={styles.smallCard}>
-            <Text style={styles.smallLabel}>
-              GASTOS
-            </Text>
-
-            <Text style={styles.redText}>
-              -Bs ,00
-            </Text>
-          </View>
-        </View>
-
-        {/* BOTON REPORTES */}
-        <TouchableOpacity
-          style={styles.reportButton}
-        >
-          <Text style={styles.reportText}>
-            VER REPORTES COMPLETOS
-          </Text>
-
-          <ChevronRight
-            size={20}
-            color="#fff"
-          />
-        </TouchableOpacity>
-
-        {/* REGISTRAR VENTA */}
-        <TouchableOpacity
-          style={styles.newSaleCard}
-        >
-          <View style={styles.newSaleLeft}>
-            <View style={styles.plusCircle}>
-              <Plus
-                size={22}
-                color="#fff"
-              />
-            </View>
-
-            <View>
-              <Text style={styles.newSaleTitle}>
-                REGISTRAR VENTA
-              </Text>
-
-              <Text
-                style={
-                  styles.newSaleSubtitle
-                }
-              >
-                En segundos, sin papeles
-              </Text>
-            </View>
-          </View>
-
-          <ChevronRight
-            size={20}
-            color="#1B3A6B"
-          />
-        </TouchableOpacity>
-
-        {/* INSIGHT */}
-        <View style={styles.insightCard}>
-          <View style={styles.insightIcon}>
-            <Lightbulb
-              size={20}
-              color="#fff"
-            />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.insightLabel}>
-              INSIGHT DE LA SEMANA
-            </Text>
-
-            <Text style={styles.insightTitle}>
-              Tu mejor día fue el
-              Sábado 💡
-            </Text>
-
-            <Text style={styles.insightText}>
-              Asegura stock y prepara
-              ofertas ese día.
-            </Text>
-          </View>
-        </View>
-
-        {/* MOVIMIENTOS */}
-        <View style={styles.movementsSection}>
-          <View style={styles.movementsHeader}>
-            <Text
-              style={
-                styles.movementsTitle
-              }
-            >
-              ÚLTIMOS MOVIMIENTOS
-            </Text>
-
-            <TouchableOpacity>
-              <Text
-                style={
-                  styles.viewAll
-                }
-              >
-                VER TODO
-              </Text>
+            <TouchableOpacity style={styles.powerButton}>
+              <Power size={22} color="#FF1E8E" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.movementsBox}>
-            {movimientos.map((item) => (
-              <View
-                key={item.id}
-                style={
-                  styles.movementItem
-                }
-              >
-                <View
-                  style={
-                    styles.leftPinkBar
-                  }
-                />
+          <View style={[styles.mainCard, { marginHorizontal: horizontalMargin }]}>
+            <View style={styles.mainBar} />
 
-                <View
-                  style={
-                    styles.movementContent
-                  }
-                >
-                  <View
-                    style={
-                      styles.greenDot
-                    }
-                  />
+            <View style={styles.mainContent}>
+              <Text style={styles.smallPink}>MI NEGOCIO</Text>
 
-                  <View
-                    style={{
-                      flex: 1,
-                      marginLeft: 12,
-                    }}
-                  >
-                    <Text
-                      style={
-                        styles.itemTitle
-                      }
-                    >
-                      {item.nombre}
-                    </Text>
+              <Text style={styles.businessName} numberOfLines={1}>
+                Emprendimiento Tinka
+              </Text>
 
-                    <Text
-                      style={
-                        styles.itemDetail
-                      }
-                    >
-                      {item.detalle}
-                    </Text>
-                  </View>
+              <Text style={styles.salesLabel}>VENTAS DE HOY</Text>
 
-                  <View>
-                    <Text
-                      style={
-                        styles.amount
-                      }
-                    >
-                      {item.monto}
-                    </Text>
+              <Text style={styles.salesAmount}>Bs 129,00</Text>
+            </View>
+          </View>
 
-                    <Text
-                      style={
-                        styles.category
-                      }
-                    >
-                      {item.categoria}
-                    </Text>
+          <View style={[styles.row, { marginHorizontal: horizontalMargin }]}>
+            <View style={styles.smallCard}>
+              <Text style={styles.smallLabel}>ABONOS</Text>
+              <Text style={styles.greenText}>+Bs 129,00</Text>
+            </View>
+
+            <View style={styles.smallCard}>
+              <Text style={styles.smallLabel}>GASTOS</Text>
+              <Text style={styles.redText}>-Bs 0,00</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={[styles.reportButton, { marginHorizontal: horizontalMargin }]}>
+            <Text style={styles.reportText} numberOfLines={1}>
+              VER REPORTES COMPLETOS
+            </Text>
+            <ChevronRight size={20} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.newSaleCard, { marginHorizontal: horizontalMargin }]}>
+            <View style={styles.newSaleLeft}>
+              <View style={styles.plusCircle}>
+                <Plus size={22} color="#fff" />
+              </View>
+
+              <View style={styles.flexShrink}>
+                <Text style={styles.newSaleTitle} numberOfLines={1}>
+                  REGISTRAR VENTA
+                </Text>
+                <Text style={styles.newSaleSubtitle} numberOfLines={1}>
+                  En segundos, sin papeles
+                </Text>
+              </View>
+            </View>
+
+            <ChevronRight size={20} color="#1B3A6B" />
+          </TouchableOpacity>
+
+          <View style={[styles.insightCard, { marginHorizontal: horizontalMargin }]}>
+            <View style={styles.insightIcon}>
+              <Lightbulb size={20} color="#fff" />
+            </View>
+
+            <View style={styles.flex1}>
+              <Text style={styles.insightLabel}>INSIGHT DE LA SEMANA</Text>
+              <Text style={styles.insightTitle} numberOfLines={1}>
+                Tu mejor día fue el Sábado 💡
+              </Text>
+              <Text style={styles.insightText}>
+                Asegura stock y prepara ofertas ese día.
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.movementsSection, { marginHorizontal: horizontalMargin }]}>
+            <View style={styles.movementsHeader}>
+              <Text style={styles.movementsTitle}>ÚLTIMOS MOVIMIENTOS</Text>
+
+              <TouchableOpacity>
+                <Text style={styles.viewAll}>VER TODO</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.movementsBox}>
+              {movimientos.map((item) => (
+                <View key={item.id} style={styles.movementItem}>
+                  <View style={styles.leftPinkBar} />
+
+                  <View style={styles.movementContent}>
+                    <View style={styles.greenDot} />
+
+                    <View style={styles.itemTextContainer}>
+                      <Text style={styles.itemTitle} numberOfLines={1}>
+                        {item.nombre}
+                      </Text>
+                      <Text style={styles.itemDetail} numberOfLines={1}>
+                        {item.detalle}
+                      </Text>
+                    </View>
+
+                    <View style={styles.rightAmountContainer}>
+                      <Text style={styles.amount} numberOfLines={1}>
+                        {item.monto}
+                      </Text>
+                      <Text style={styles.category} numberOfLines={1}>
+                        {item.categoria}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenWrapper: {
+    flex: 1,
+    backgroundColor: "#F4F4F6",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#F4F4F6",
+    width: "100%",
   },
 
   header: {
-    paddingTop: 55,
-    paddingHorizontal: 22,
+    paddingTop: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -320,14 +229,16 @@ const styles = StyleSheet.create({
     marginLeft: 22,
   },
 
+  powerButton: {
+    padding: 4,
+  },
+
   mainCard: {
     marginTop: 24,
-    marginHorizontal: 22,
     backgroundColor: "#fff",
     borderRadius: 24,
     overflow: "hidden",
     flexDirection: "row",
-
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -374,7 +285,6 @@ const styles = StyleSheet.create({
 
   row: {
     flexDirection: "row",
-    marginHorizontal: 22,
     marginTop: 16,
     gap: 12,
   },
@@ -384,7 +294,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 22,
     padding: 16,
-
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -413,16 +322,14 @@ const styles = StyleSheet.create({
   },
 
   reportButton: {
-    marginHorizontal: 22,
     marginTop: 18,
     height: 54,
     borderRadius: 999,
-
     backgroundColor: "#C2188B",
-
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 16,
   },
 
   reportText: {
@@ -434,17 +341,14 @@ const styles = StyleSheet.create({
   },
 
   newSaleCard: {
-    marginHorizontal: 22,
     marginTop: 18,
     borderRadius: 22,
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: "#FF9ACD",
     backgroundColor: "#fff",
-
     paddingHorizontal: 16,
     paddingVertical: 14,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -453,6 +357,8 @@ const styles = StyleSheet.create({
   newSaleLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    paddingRight: 8,
   },
 
   plusCircle: {
@@ -460,10 +366,8 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 999,
     backgroundColor: "#A31C8E",
-
     justifyContent: "center",
     alignItems: "center",
-
     marginRight: 14,
   },
 
@@ -480,14 +384,10 @@ const styles = StyleSheet.create({
   },
 
   insightCard: {
-    marginHorizontal: 22,
     marginTop: 18,
-
     borderRadius: 24,
     padding: 18,
-
     flexDirection: "row",
-
     backgroundColor: "#C2188B",
   },
 
@@ -495,13 +395,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 999,
-
-    backgroundColor:
-      "rgba(255,255,255,0.18)",
-
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
-
     marginRight: 12,
   },
 
@@ -528,7 +424,6 @@ const styles = StyleSheet.create({
 
   movementsSection: {
     marginTop: 24,
-    marginHorizontal: 22,
   },
 
   movementsHeader: {
@@ -582,6 +477,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#20B56C",
   },
 
+  itemTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+    paddingRight: 10,
+  },
+
   itemTitle: {
     fontSize: 16,
     fontWeight: "800",
@@ -593,6 +494,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#8A8EA5",
     fontWeight: "700",
+  },
+
+  rightAmountContainer: {
+    alignItems: "flex-end",
+    justifyContent: "center",
   },
 
   amount: {
@@ -608,5 +514,14 @@ const styles = StyleSheet.create({
     color: "#8A8EA5",
     fontWeight: "800",
     textAlign: "right",
+  },
+
+  flex1: {
+    flex: 1,
+  },
+
+  flexShrink: {
+    flex: 1,
+    flexShrink: 1,
   },
 });

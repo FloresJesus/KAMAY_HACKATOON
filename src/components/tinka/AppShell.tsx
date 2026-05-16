@@ -10,6 +10,7 @@ import {
 } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useResponsive } from "../../hooks/use-responsive";
 
 type NavItem = {
   to: "/" | "/nueva-venta" | "/stock" | "/reportes" | "/historial" | "/mas";
@@ -33,6 +34,46 @@ type AppShellProps = {
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { isDesktop } = useResponsive();
+
+  if (isDesktop) {
+    return (
+      <View style={desktopStyles.container}>
+        <View style={desktopStyles.sidebar}>
+          <View style={desktopStyles.logo}>
+            <Text style={desktopStyles.logoText}>KAMAY</Text>
+          </View>
+          {items.map((item) => {
+            const isActive = pathname === item.to;
+            const Icon = item.icon;
+            const navItemStyle = StyleSheet.flatten([
+              desktopStyles.navItem,
+              isActive && desktopStyles.navItemActive,
+            ]);
+            const navLabelStyle = StyleSheet.flatten([
+              desktopStyles.navLabel,
+              isActive && desktopStyles.navLabelActive,
+            ]);
+            return (
+              <Link key={item.to} href={item.to} asChild>
+                <Pressable style={navItemStyle}>
+                  <Icon
+                    color={isActive ? "#FFFFFF" : "#0065ac"}
+                    size={22}
+                  />
+                  <Text style={navLabelStyle}>
+                    {item.label}
+                  </Text>
+                  {item.badge ? <View style={desktopStyles.badge} /> : null}
+                </Pressable>
+              </Link>
+            );
+          })}
+        </View>
+        <View style={desktopStyles.content}>{children}</View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -73,19 +114,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: "#2b4382",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#0065ac",
+    backgroundColor: "#F4F4F6",
   },
   bottomBar: {
     flexDirection: "row",
@@ -128,6 +157,76 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     right: 22,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
+});
+
+const desktopStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+  },
+  sidebar: {
+    width: 220,
+    backgroundColor: "#fafafa",
+    borderRightWidth: 1,
+    borderRightColor: "#e5e7eb",
+    paddingTop: 32,
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  logo: {
+    paddingHorizontal: 12,
+    paddingBottom: 24,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#1F3C77",
+    letterSpacing: 3,
+  },
+  navItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    gap: 12,
+  },
+  navItemActive: {
+    backgroundColor: "#2b4382",
+    borderWidth: 1,
+    borderColor: "#44bef0",
+    shadowColor: "#ee008b",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  navLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0065ac",
+    letterSpacing: 0.8,
+  },
+  navLabelActive: {
+    color: "#FFFFFF",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#F4F4F6",
+  },
+  badge: {
+    position: "absolute",
+    top: 8,
+    right: 10,
     width: 8,
     height: 8,
     borderRadius: 4,
