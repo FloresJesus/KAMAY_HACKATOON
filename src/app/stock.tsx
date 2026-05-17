@@ -1,10 +1,28 @@
 import { PageHeader } from "@/components/tinka/AppShell";
-import { Colors, Gradients } from "@/constants/colors";
 import { useProducts } from "@/lib/product-store";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus } from "lucide-react-native";
+import { Package, Plus } from "lucide-react-native";
 import { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+const Colors = {
+  background: "#F8FAFC",
+  navy: "#1B3A6B",
+  magenta: "#E94560",
+  mutedForeground: "#64748B",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
+};
+
+const Gradients = {
+  icon: ["#1B3A6B", "#E94560"] as const,
+};
 
 type ViewType = "catalog" | "add-edit" | "replenish" | "history";
 
@@ -47,6 +65,32 @@ export default function StockTab() {
           </TouchableOpacity>
         }
       />
+
+      <View>
+        <Text style={styles.sectionTitle}>Catalogo</Text>
+
+        {products.length === 0 && (
+          <View style={styles.emptyState}>
+            <Package color={Colors.mutedForeground} size={48} />
+            <Text style={styles.emptyTitle}>Sin productos aun</Text>
+          </View>
+        )}
+
+        {products.map((product) => (
+          <View key={product.id} style={styles.productCard}>
+            <View style={styles.productAccent} />
+            <View style={styles.productBody}>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productMeta}>
+                Stock: {product.stockCurrent} {product.unit}
+              </Text>
+              <Text style={styles.productMeta}>
+                Precio: Bs. {product.price}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </ScrollView>
   );
 }
@@ -69,5 +113,58 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    color: Colors.navy,
+    textTransform: "uppercase",
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptyState: {
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 48,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Colors.mutedForeground,
+  },
+  productCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: "hidden",
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  productAccent: {
+    width: 6,
+    backgroundColor: Colors.magenta,
+  },
+  productBody: {
+    flex: 1,
+    padding: 16,
+  },
+  productName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: Colors.navy,
+  },
+  productMeta: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: Colors.mutedForeground,
+    marginTop: 4,
   },
 });
