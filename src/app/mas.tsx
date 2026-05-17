@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/tinka/AppShell";
 import { Colors, Gradients, Shadow } from "@/constants/colors";
+import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
@@ -36,6 +37,13 @@ const items: { icon: LucideIcon; label: string }[] = [
 export default function Mas() {
   const router = useRouter();
 
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Error", "No se pudo cerrar la sesión");
+    }
+  }
+
   function handleOption(label: string) {
     switch (label) {
       case "Mi Negocio":
@@ -63,8 +71,7 @@ export default function Mas() {
         Alert.alert("Ajustes", "Página de ajustes no disponible aún.");
         break;
       case "Salir":
-        // simple logout: navigate to login (replace so back doesn't return)
-        router.replace("/");
+        handleLogout();
         break;
       default:
         Alert.alert("Opción", `Seleccionaste: ${label}`);

@@ -76,6 +76,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <DottedStripe />
       <View style={styles.content}>
         {children}
+        
       </View>
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
         {items.map((it) => {
