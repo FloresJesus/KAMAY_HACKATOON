@@ -2,10 +2,8 @@ import { Colors, Gradients, Shadow } from "@/constants/colors";
 import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
 import { Eye, EyeOff, TrendingUp, Loader } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -31,12 +29,6 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (Platform.OS !== "web") {
-      WebBrowser.maybeCompleteAuthSession();
-    }
-  }, []);
-
   const handleLogin = async () => {
     setError("");
     if (!email.trim()) {
@@ -59,16 +51,6 @@ export default function LoginScreen() {
         : authError.message);
     }
   };
-
-  useEffect(() => {
-    const handler = Linking.addEventListener("url", async (event) => {
-      const code = event.url.match(/code=([^&]+)/)?.[1];
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code);
-      }
-    });
-    return () => handler.remove();
-  }, []);
 
   const handleRegister = async () => {
     setError("");
@@ -97,46 +79,6 @@ export default function LoginScreen() {
         "Revisa tu correo para confirmar la cuenta. Si ya tienes cuenta, inicia sesión."
       );
     }
-  };
-
-  const handleGitHubSignIn = async () => {
-    setError("");
-    setLoading(true);
-    const redirectTo =
-      process.env.EXPO_PUBLIC_REDIRECT_URL ??
-      Linking.createURL("auth/callback");
-
-    try {
-      if (Platform.OS === "web") {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "github",
-          options: { redirectTo },
-        });
-        if (error) setError(error.message);
-      } else {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "github",
-          options: { redirectTo, skipBrowserRedirect: true },
-        });
-        if (error) {
-          setError(error.message);
-        } else if (data?.url) {
-          const result = await WebBrowser.openAuthSessionAsync(
-            data.url,
-            redirectTo
-          );
-          if (result.type === "success") {
-            const code = (result.url as string).match(/code=([^&]+)/)?.[1];
-            if (code) {
-              await supabase.auth.exchangeCodeForSession(code);
-            }
-          }
-        }
-      }
-    } catch (e: any) {
-      setError(e?.message || "Error al iniciar sesión con GitHub");
-    }
-    setLoading(false);
   };
 
   return (
@@ -233,20 +175,6 @@ export default function LoginScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>O CONTINÚA CON</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            onPress={handleGitHubSignIn}
-            activeOpacity={0.85}
-            disabled={loading}
-            style={styles.googleBtn}
-          >
-            <Text style={styles.googleBtnText}>GITHUB</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
@@ -379,41 +307,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: 1.4,
-    textTransform: "uppercase",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-    color: Colors.mutedForeground,
-  },
-  googleBtn: {
-    marginTop: 12,
-    width: "100%",
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 2,
-    borderColor: Colors.navy,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.card,
-  },
-  googleBtnText: {
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: Colors.navy,
     textTransform: "uppercase",
   },
   footer: {
