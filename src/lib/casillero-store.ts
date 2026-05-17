@@ -67,45 +67,41 @@ export function getSlotSize(num: number): CasilleroSize {
   return "GRANDE";
 }
 
+let reservationsCache: CasilleroReservation[] = [];
 let listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((l) => l());
 }
 
+async function doFetch() {
+  const businessId = await getBusinessId();
+  if (!businessId) return;
+  const { data } = await supabase
+    .from("casillero_reservations")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false });
+  if (data) reservationsCache = data.map(mapReservation);
+}
+
 export function useCasilleros() {
   const [, force] = useState(0);
-  const [reservations, setReservations] = useState<CasilleroReservation[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fn = () => force((x) => x + 1);
     listeners.add(fn);
-    fetchReservations();
-    return () => {
-      listeners.delete(fn);
-    };
+    if (reservationsCache.length === 0) {
+      doFetch().then(notify);
+    }
+    return () => { listeners.delete(fn); };
   }, []);
 
-  async function fetchReservations() {
-    const businessId = await getBusinessId();
-    if (!businessId) return;
-    const { data } = await supabase
-      .from("casillero_reservations")
-      .select("*")
-      .eq("business_id", businessId)
-      .order("created_at", { ascending: false });
-    if (data) setReservations(data.map(mapReservation));
-    setLoading(false);
-  }
-
   return {
-    reservations,
-    activeReservations: reservations.filter((r) => r.status === "activo"),
-    loading,
-    addReservation: async (
-      r: Omit<CasilleroReservation, "id" | "createdAt">
-    ) => {
+    reservations: reservationsCache,
+    activeReservations: reservationsCache.filter((r) => r.status === "activo"),
+    loading: false,
+    addReservation: async (r: Omit<CasilleroReservation, "id" | "createdAt">) => {
       const businessId = await getBusinessId();
       if (!businessId) return;
 
@@ -115,10 +111,7 @@ export function useCasilleros() {
         .eq("name", r.location)
         .single();
 
-      if (!location) {
-        console.error("Location not found:", r.location);
-        return;
-      }
+      if (!location) return;
 
       const { data: slot } = await supabase
         .from("casillero_slots")
@@ -127,10 +120,7 @@ export function useCasilleros() {
         .eq("slot_number", r.casilleroNumber)
         .single();
 
-      if (!slot) {
-        console.error("Slot not found:", r.location, r.casilleroNumber);
-        return;
-      }
+      if (!slot) return;
 
       const { data } = await supabase
         .from("casillero_reservations")
@@ -148,8 +138,11 @@ export function useCasilleros() {
         })
         .select()
         .single();
-      notify();
-      await fetchReservations();
+
+      if (data) {
+        reservationsCache = [mapReservation(data), ...reservationsCache];
+        notify();
+      }
       return data ? mapReservation(data) : undefined;
     },
     markRecogido: async (id: string) => {
@@ -157,8 +150,10 @@ export function useCasilleros() {
         .from("casillero_reservations")
         .update({ status: "recogido" })
         .eq("id", id);
+      reservationsCache = reservationsCache.map((r) =>
+        r.id === id ? { ...r, status: "recogido" as CasilleroStatus } : r
+      );
       notify();
-      await fetchReservations();
     },
   };
 }

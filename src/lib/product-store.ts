@@ -60,16 +60,16 @@ function mapMovement(row: Record<string, unknown>): StockMovement {
 function unmapProduct(
   p: Partial<Omit<Product, "id" | "createdAt">>
 ): Record<string, unknown> {
-  const rev: Record<string, unknown> = {};
-  const reverse: Record<string, string> = {
+  const rev: Record<string, string> = {
     stockCurrent: "stock_current",
     stockInitial: "stock_initial",
     lowStockThreshold: "low_stock_threshold",
   };
+  const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(p)) {
-    rev[reverse[key] ?? key] = val;
+    out[rev[key] ?? key] = val;
   }
-  return rev;
+  return out;
 }
 
 export function getStockStatus(product: Product): StockStatus {
@@ -78,49 +78,50 @@ export function getStockStatus(product: Product): StockStatus {
   return "ok";
 }
 
+let productsCache: Product[] = [];
+let movementsCache: StockMovement[] = [];
 let listeners = new Set<() => void>();
+let fetchPromise: Promise<void> | null = null;
 
 function notify() {
   listeners.forEach((l) => l());
 }
 
+async function doFetch() {
+  const businessId = await getBusinessId();
+  if (!businessId) return;
+  const [prodRes, moveRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("stock_movements")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (prodRes.data) productsCache = prodRes.data.map(mapProduct);
+  if (moveRes.data) movementsCache = moveRes.data.map(mapMovement);
+}
+
 export function useProducts() {
   const [, force] = useState(0);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fn = () => force((x) => x + 1);
     listeners.add(fn);
-    fetchAll();
+    if (productsCache.length === 0) {
+      doFetch().then(notify);
+    }
     return () => { listeners.delete(fn); };
   }, []);
 
-  async function fetchAll() {
-    const businessId = await getBusinessId();
-    if (!businessId) return;
-    const [prodRes, moveRes] = await Promise.all([
-      supabase
-        .from("products")
-        .select("*")
-        .eq("business_id", businessId)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("stock_movements")
-        .select("*")
-        .eq("business_id", businessId)
-        .order("created_at", { ascending: false }),
-    ]);
-    if (prodRes.data) setProducts(prodRes.data.map(mapProduct));
-    if (moveRes.data) setMovements(moveRes.data.map(mapMovement));
-    setLoading(false);
-  }
-
   return {
-    products,
-    movements,
-    loading,
+    products: productsCache,
+    movements: movementsCache,
+    loading: false,
     addProduct: async (p: Omit<Product, "id" | "createdAt">) => {
       const businessId = await getBusinessId();
       if (!businessId) return;
@@ -129,30 +130,33 @@ export function useProducts() {
         .insert({ ...unmapProduct(p), business_id: businessId })
         .select()
         .single();
-      if (p.stockInitial > 0 && data) {
-        await supabase.from("stock_movements").insert({
-          business_id: businessId,
-          product_id: data.id,
-          quantity_change: p.stockInitial,
-          reason: "reposicion",
-        });
+      if (data) {
+        const mapped = mapProduct(data);
+        productsCache = [mapped, ...productsCache];
+        if (p.stockInitial > 0) {
+          movementsCache = [
+            {
+              id: data.id,
+              productId: mapped.id,
+              quantityChange: p.stockInitial,
+              reason: "reposicion",
+              createdAt: data.created_at,
+            },
+            ...movementsCache,
+          ];
+        }
+        notify();
       }
-      notify();
-      await fetchAll();
       return data ? mapProduct(data) : undefined;
     },
-    updateProduct: async (
-      id: string,
-      updates: Partial<Omit<Product, "id" | "createdAt">>
-    ) => {
+    updateProduct: async (id: string, updates: Partial<Omit<Product, "id" | "createdAt">>) => {
       const businessId = await getBusinessId();
       if (!businessId) return;
-      await supabase
-        .from("products")
-        .update(unmapProduct(updates))
-        .eq("id", id);
+      await supabase.from("products").update(unmapProduct(updates)).eq("id", id);
+      productsCache = productsCache.map((p) =>
+        p.id === id ? { ...p, ...updates } : p
+      );
       notify();
-      await fetchAll();
     },
     deductStock: async (productId: string, qty: number, saleId?: string) => {
       const businessId = await getBusinessId();
@@ -163,22 +167,25 @@ export function useProducts() {
         .eq("id", productId)
         .single();
       if (product) {
+        const newCurrent = Math.max(0, product.stock_current - qty);
         await supabase
           .from("products")
-          .update({
-            stock_current: Math.max(0, product.stock_current - qty),
-          })
+          .update({ stock_current: newCurrent })
           .eq("id", productId);
+        productsCache = productsCache.map((p) =>
+          p.id === productId ? { ...p, stockCurrent: newCurrent } : p
+        );
       }
-      await supabase.from("stock_movements").insert({
-        business_id: businessId,
-        product_id: productId,
-        quantity_change: -qty,
+      const newMovement: StockMovement = {
+        id: Date.now().toString(36),
+        productId,
+        quantityChange: -qty,
         reason: "venta",
-        reference_sale_id: saleId,
-      });
+        referenceSaleId: saleId,
+        createdAt: new Date().toISOString(),
+      };
+      movementsCache = [newMovement, ...movementsCache];
       notify();
-      await fetchAll();
     },
     replenishStock: async (productId: string, qty: number) => {
       const businessId = await getBusinessId();
@@ -189,26 +196,31 @@ export function useProducts() {
         .eq("id", productId)
         .single();
       if (product) {
+        const newCurrent = product.stock_current + qty;
         await supabase
           .from("products")
-          .update({ stock_current: product.stock_current + qty })
+          .update({ stock_current: newCurrent })
           .eq("id", productId);
+        productsCache = productsCache.map((p) =>
+          p.id === productId ? { ...p, stockCurrent: newCurrent } : p
+        );
       }
-      await supabase.from("stock_movements").insert({
-        business_id: businessId,
-        product_id: productId,
-        quantity_change: qty,
+      const newMovement: StockMovement = {
+        id: Date.now().toString(36),
+        productId,
+        quantityChange: qty,
         reason: "reposicion",
-      });
+        createdAt: new Date().toISOString(),
+      };
+      movementsCache = [newMovement, ...movementsCache];
       notify();
-      await fetchAll();
     },
     getMovementsForProduct: (productId: string) =>
-      movements.filter((m) => m.productId === productId),
+      movementsCache.filter((m) => m.productId === productId),
     getCriticalProducts: () =>
-      products.filter((p) => getStockStatus(p) === "critical"),
+      productsCache.filter((p) => getStockStatus(p) === "critical"),
     getLowProducts: () =>
-      products.filter((p) => {
+      productsCache.filter((p) => {
         const s = getStockStatus(p);
         return s === "low" || s === "critical";
       }),
