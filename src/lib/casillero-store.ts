@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore, useEffect } from "react";
 import { supabase } from "./supabase";
 import { getBusinessId } from "./db";
 
@@ -69,9 +69,17 @@ export function getSlotSize(num: number): CasilleroSize {
 
 let reservationsCache: CasilleroReservation[] = [];
 let listeners = new Set<() => void>();
+let fetchPromise: Promise<void> | null = null;
 
 function notify() {
   listeners.forEach((l) => l());
+}
+
+async function ensureFetched() {
+  if (reservationsCache.length > 0) return;
+  if (fetchPromise) return fetchPromise;
+  fetchPromise = doFetch();
+  return fetchPromise;
 }
 
 async function doFetch() {
@@ -85,25 +93,52 @@ async function doFetch() {
   if (data) reservationsCache = data.map(mapReservation);
 }
 
+function subscribeToCasilleros(cb: () => void) {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+}
+
+function getReservationsSnapshot() {
+  return reservationsCache;
+}
+
+export function clearReservationsCache() {
+  reservationsCache = [];
+  fetchPromise = null;
+}
+
+export async function prefetchCasilleros() {
+  await ensureFetched();
+}
+
 export function useCasilleros() {
-  const [, force] = useState(0);
+  const reservations = useSyncExternalStore(subscribeToCasilleros, getReservationsSnapshot);
 
   useEffect(() => {
-    const fn = () => force((x) => x + 1);
-    listeners.add(fn);
     if (reservationsCache.length === 0) {
-      doFetch().then(notify);
+      ensureFetched().then(notify);
     }
-    return () => { listeners.delete(fn); };
   }, []);
 
   return {
-    reservations: reservationsCache,
+    reservations,
     activeReservations: reservationsCache.filter((r) => r.status === "activo"),
     loading: false,
     addReservation: async (r: Omit<CasilleroReservation, "id" | "createdAt">) => {
+      const optimistic: CasilleroReservation = {
+        id: `temp_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        ...r,
+      };
+      reservationsCache = [optimistic, ...reservationsCache];
+      notify();
+
       const businessId = await getBusinessId();
-      if (!businessId) return;
+      if (!businessId) {
+        reservationsCache = reservationsCache.filter((res) => res.id !== optimistic.id);
+        notify();
+        return;
+      }
 
       const { data: location } = await supabase
         .from("casillero_locations")
@@ -111,7 +146,11 @@ export function useCasilleros() {
         .eq("name", r.location)
         .single();
 
-      if (!location) return;
+      if (!location) {
+        reservationsCache = reservationsCache.filter((res) => res.id !== optimistic.id);
+        notify();
+        return;
+      }
 
       const { data: slot } = await supabase
         .from("casillero_slots")
@@ -120,7 +159,11 @@ export function useCasilleros() {
         .eq("slot_number", r.casilleroNumber)
         .single();
 
-      if (!slot) return;
+      if (!slot) {
+        reservationsCache = reservationsCache.filter((res) => res.id !== optimistic.id);
+        notify();
+        return;
+      }
 
       const { data } = await supabase
         .from("casillero_reservations")
@@ -140,9 +183,13 @@ export function useCasilleros() {
         .single();
 
       if (data) {
-        reservationsCache = [mapReservation(data), ...reservationsCache];
-        notify();
+        reservationsCache = reservationsCache.map((res) =>
+          res.id === optimistic.id ? mapReservation(data) : res
+        );
+      } else {
+        reservationsCache = reservationsCache.filter((res) => res.id !== optimistic.id);
       }
+      notify();
       return data ? mapReservation(data) : undefined;
     },
     markRecogido: async (id: string) => {

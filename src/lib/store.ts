@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore, useEffect } from "react";
 import { supabase } from "./supabase";
 import { getBusinessId } from "./db";
 import type { Sale } from "./mock-data";
@@ -31,33 +31,63 @@ async function doFetch() {
   }
 }
 
+function subscribeToSales(cb: () => void) {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+}
+
+function getSalesSnapshot() {
+  return salesCache;
+}
+
+export function clearSalesCache() {
+  salesCache = [];
+  fetchPromise = null;
+}
+
+export async function prefetchSales() {
+  await ensureFetched();
+}
+
 export function useSales() {
-  const [, force] = useState(0);
+  const sales = useSyncExternalStore(subscribeToSales, getSalesSnapshot);
 
   useEffect(() => {
-    const fn = () => force((x) => x + 1);
-    listeners.add(fn);
     if (salesCache.length === 0) {
-      doFetch().then(notify);
+      ensureFetched().then(notify);
     }
-    return () => { listeners.delete(fn); };
   }, []);
 
   return {
-    sales: salesCache,
+    sales,
     loading: false,
     addSale: async (s: Omit<Sale, "id" | "date">) => {
+      const optimistic: Sale = {
+        id: `temp_${Date.now()}`,
+        date: new Date().toISOString(),
+        ...s,
+      } as Sale;
+      salesCache = [optimistic, ...salesCache];
+      notify();
       const businessId = await getBusinessId();
-      if (!businessId) return;
+      if (!businessId) {
+        salesCache = salesCache.filter((sale) => sale.id !== optimistic.id);
+        notify();
+        return;
+      }
       const { data } = await supabase
         .from("sales")
         .insert({ ...s, business_id: businessId })
         .select()
         .single();
       if (data) {
-        salesCache = [data as unknown as Sale, ...salesCache];
-        notify();
+        salesCache = salesCache.map((sale) =>
+          sale.id === optimistic.id ? (data as unknown as Sale) : sale
+        );
+      } else {
+        salesCache = salesCache.filter((sale) => sale.id !== optimistic.id);
       }
+      notify();
     },
   };
 }

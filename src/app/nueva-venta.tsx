@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -72,6 +72,7 @@ export default function NewSale() {
   const { products, deductStock } = useProducts();
   const router = useRouter();
   const [amount, setAmount] = useState("");
+  const [qty, setQty] = useState("1");
   const [product, setProduct] = useState("");
   const [linkedProductId, setLinkedProductId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>(CATEGORIES[0].label);
@@ -88,6 +89,15 @@ export default function NewSale() {
     productName: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (!linkedProductId) return;
+    const linked = products.find((p) => p.id === linkedProductId);
+    if (linked) {
+      const quantity = parseInt(qty) || 1;
+      setAmount(String(linked.price * quantity));
+    }
+  }, [qty, linkedProductId, products]);
+
   const topProducts = useMemo(() => {
     const count = new Map<string, number>();
     sales.forEach((s) => count.set(s.product, (count.get(s.product) ?? 0) + 1));
@@ -103,26 +113,33 @@ export default function NewSale() {
     setProduct(p.name);
     setLinkedProductId(p.id);
     setAmount(String(p.price));
+    setQty("1");
   };
 
   const doSubmit = () => {
     const value = parseFloat(amount.replace(",", "."));
+    const quantity = parseInt(qty) || 1;
     if (!value || !product) return;
     const saleId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    addSale({ product, qty: 1, category, method, location, amount: value });
-    if (linkedProductId) {
-      deductStock(linkedProductId, 1, saleId);
+    addSale({ product, qty: quantity, category, method, location, amount: value });
+
+    const match = products.find(
+      (p) => p.id === linkedProductId || p.name === product.trim()
+    );
+    if (match && match.stockCurrent >= quantity) {
+      deductStock(match.id, quantity, saleId);
     }
     setSuccess({ product, amount: value, method });
   };
 
   const submit = () => {
-    if (linkedProductId) {
-      const linked = products.find((p) => p.id === linkedProductId);
-      if (linked && linked.stockCurrent <= 0) {
-        setStockWarning({ available: linked.stockCurrent, productName: linked.name });
-        return;
-      }
+    const match = products.find(
+      (p) => p.id === linkedProductId || p.name === product.trim()
+    );
+    const quantity = parseInt(qty) || 1;
+    if (match && match.stockCurrent < quantity) {
+      setStockWarning({ available: match.stockCurrent, productName: match.name });
+      return;
     }
     doSubmit();
   };
@@ -153,6 +170,7 @@ export default function NewSale() {
                 setAmount("");
                 setProduct("");
                 setLinkedProductId(null);
+                setQty("1");
               }}
             >
               Nueva Venta
@@ -324,6 +342,16 @@ export default function NewSale() {
               setLinkedProductId(null);
             }}
             placeholder="Ej. Almuerzo familiar"
+          />
+        </View>
+
+        <View>
+          <FieLabel>Cantidad</FieLabel>
+          <FieInput
+            keyboardType="number-pad"
+            value={qty}
+            onChangeText={(t) => setQty(t.replace(/[^\d]/g, "") || "1")}
+            placeholder="1"
           />
         </View>
 

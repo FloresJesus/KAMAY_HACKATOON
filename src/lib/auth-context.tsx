@@ -5,9 +5,14 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { prefetchSales, clearSalesCache } from "@/lib/store";
+import { prefetchProducts, clearProductsCache } from "@/lib/product-store";
+import { prefetchCasilleros, clearReservationsCache } from "@/lib/casillero-store";
+import { clearBusinessIdCache } from "@/lib/db";
 
 type AuthContextType = {
   session: Session | null;
@@ -24,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
+  const prefetched = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,7 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === "SIGNED_OUT") {
+          clearSalesCache();
+          clearProductsCache();
+          clearReservationsCache();
+          clearBusinessIdCache();
+          prefetched.current = false;
+        }
         setSession(session);
         setIsLoading(false);
       }
@@ -42,9 +55,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!session || prefetched.current) return;
+    prefetched.current = true;
+    Promise.all([
+      prefetchSales(),
+      prefetchProducts(),
+      prefetchCasilleros(),
+    ]);
+  }, [session]);
+
+  useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "login";
+    const inAuthGroup = segments[0] === "login" || segments[0] === "auth";
 
     if (!session && !inAuthGroup) {
       router.replace("/login");

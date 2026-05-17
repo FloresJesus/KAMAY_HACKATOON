@@ -7,7 +7,7 @@ import AppShell from "../components/tinka/AppShell";
 function RootLayoutInner() {
   const pathname = usePathname();
   const { isLoading } = useAuth();
-  const isLogin = pathname === "/login";
+  const isLogin = pathname === "/login" || pathname.startsWith("/auth");
 
   if (isLoading) {
     return (

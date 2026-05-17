@@ -37,15 +37,14 @@ type NavItem = {
 
 export function DottedStripe() {
   return (
+    //dos filas de puntos alternados en magenta y navy, con un pequeño margen entre ellos, que se repiten a lo largo del ancho de la pantalla
     <View style={styles.dottedStripe}>
-      {Array.from({ length: 40 }).map((_, i) => (
+      {Array.from({ length: 100 }, (_, i) => (
         <View
           key={i}
           style={[
             styles.dot,
-            {
-              backgroundColor: i % 2 === 0 ? Colors.navy : Colors.magenta,
-            },
+            { backgroundColor: i % 2 === 0 ? Colors.magenta : Colors.navy },
           ]}
         />
       ))}
@@ -143,7 +142,7 @@ export function PageHeader({
       <View style={styles.headerSide}>
         {right ?? (
           <TouchableOpacity style={styles.headerBtn}>
-            <Power color={Colors.magenta} size={20} strokeWidth={2.5} />
+            
           </TouchableOpacity>
         )}
       </View>
