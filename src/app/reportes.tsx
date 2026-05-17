@@ -1,12 +1,20 @@
-import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Share, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { TrendingUp, Download } from "lucide-react-native";
+import { PageHeader } from "@/components/tinka/AppShell";
+import { Colors, Gradients, Shadow } from "@/constants/colors";
 import { useSales } from "@/lib/store";
 import { formatBs } from "@/lib/utils";
-import { Colors, Gradients, Shadow } from "@/constants/colors";
-import { PageHeader } from "@/components/tinka/AppShell";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { Download, TrendingUp } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 const FILTERS = ["HOY", "SEMANA", "MES", "PERSONAL."] as const;
 type Filter = (typeof FILTERS)[number];
@@ -20,11 +28,20 @@ function inRange(date: Date, f: Filter) {
     start.setHours(0, 0, 0, 0);
     return date >= start;
   }
-  if (f === "MES") return date.getMonth() === n.getMonth() && date.getFullYear() === n.getFullYear();
+  if (f === "MES")
+    return (
+      date.getMonth() === n.getMonth() && date.getFullYear() === n.getFullYear()
+    );
   return true;
 }
 
-const CHART_COLORS = [Colors.navy, Colors.magenta, Colors.purple, "#4A7BC8", Colors.warning];
+const CHART_COLORS = [
+  Colors.navy,
+  Colors.magenta,
+  Colors.purple,
+  "#4A7BC8",
+  Colors.warning,
+];
 
 export default function Reports() {
   const { sales } = useSales();
@@ -33,7 +50,7 @@ export default function Reports() {
 
   const filtered = useMemo(
     () => sales.filter((s) => inRange(new Date(s.date), filter)),
-    [sales, filter]
+    [sales, filter],
   );
   const total = filtered.reduce((a, s) => a + s.amount, 0);
 
@@ -56,20 +73,34 @@ export default function Reports() {
 
   const byMethod = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach((s) => map.set(s.method, (map.get(s.method) ?? 0) + s.amount));
+    filtered.forEach((s) =>
+      map.set(s.method, (map.get(s.method) ?? 0) + s.amount),
+    );
     return [...map.entries()].map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
   const byLocation = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach((s) => map.set(s.location, (map.get(s.location) ?? 0) + s.amount));
+    filtered.forEach((s) =>
+      map.set(s.location, (map.get(s.location) ?? 0) + s.amount),
+    );
     return [...map.entries()].map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
   const exportCSV = async () => {
     const header = "id,producto,categoria,monto,metodo,ubicacion,fecha\n";
     const body = filtered
-      .map((s) => [s.id, s.product, s.category, s.amount, s.method, s.location, s.date].join(","))
+      .map((s) =>
+        [
+          s.id,
+          s.product,
+          s.category,
+          s.amount,
+          s.method,
+          s.location,
+          s.date,
+        ].join(","),
+      )
       .join("\n");
     try {
       await Share.share({
@@ -78,6 +109,58 @@ export default function Reports() {
       });
     } catch {}
   };
+
+  const exportJSON = async () => {
+    const json = JSON.stringify(filtered, null, 2);
+    try {
+      await Share.share({
+        message: json,
+        title: `tinkaventas-${filter.toLowerCase()}.json`,
+      });
+    } catch {}
+  };
+
+  const exportPDF = async () => {
+    // Try to use expo-print if available, otherwise prompt user
+    try {
+      const Print = await import("expo-print");
+      const Sharing = await import("expo-sharing");
+      const html = `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <style>body{font-family: -apple-system, Roboto, sans-serif; padding:20px;} table{width:100%; border-collapse: collapse;} th,td{padding:8px;border:1px solid #ddd;text-align:left;} th{background:#f4f4f6}</style>
+          </head>
+          <body>
+            <h1>Reporte - ${filter}</h1>
+            <table>
+              <thead><tr><th>ID</th><th>Producto</th><th>Categoria</th><th>Monto</th><th>Metodo</th><th>Ubicacion</th><th>Fecha</th></tr></thead>
+              <tbody>
+                ${filtered
+                  .map(
+                    (s) =>
+                      `<tr><td>${s.id}</td><td>${s.product}</td><td>${s.category}</td><td>${s.amount}</td><td>${s.method}</td><td>${s.location}</td><td>${s.date}</td></tr>`,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      if (uri) {
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf" });
+      }
+    } catch (err) {
+      Alert.alert(
+        "Exportar a PDF",
+        'No se pudo generar PDF automáticamente. Instala "expo-print" y "expo-sharing" o exporta a CSV/JSON.',
+      );
+    }
+  };
+
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -121,7 +204,9 @@ export default function Reports() {
         <Text style={styles.summaryValue}>{formatBs(total)}</Text>
         <View style={styles.summaryRow}>
           <TrendingUp color="rgba(255,255,255,0.9)" size={14} />
-          <Text style={styles.summarySales}>{filtered.length} ventas registradas</Text>
+          <Text style={styles.summarySales}>
+            {filtered.length} ventas registradas
+          </Text>
         </View>
       </LinearGradient>
 
@@ -151,15 +236,58 @@ export default function Reports() {
       </View>
 
       <View style={styles.donutCards}>
-        <DonutCard title="Por metodo de pago" data={byMethod} colors={CHART_COLORS} />
-        <DonutCard title="Por ubicacion" data={byLocation} colors={CHART_COLORS} />
+        <DonutCard
+          title="Por metodo de pago"
+          data={byMethod}
+          colors={CHART_COLORS}
+        />
+        <DonutCard
+          title="Por ubicacion"
+          data={byLocation}
+          colors={CHART_COLORS}
+        />
       </View>
 
       <View style={styles.exportSection}>
-        <TouchableOpacity onPress={exportCSV} style={styles.exportBtn}>
+        <TouchableOpacity
+          onPress={() => setShowExportOptions((s) => !s)}
+          style={styles.exportBtn}
+        >
           <Download color={Colors.navy} size={20} />
-          <Text style={styles.exportBtnText}>Exportar CSV</Text>
+          <Text style={styles.exportBtnText}>Exportar</Text>
         </TouchableOpacity>
+
+        {showExportOptions ? (
+          <View style={styles.exportOptions}>
+            <TouchableOpacity
+              style={styles.exportOption}
+              onPress={() => {
+                setShowExportOptions(false);
+                exportCSV();
+              }}
+            >
+              <Text style={styles.exportOptionText}>CSV</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.exportOption}
+              onPress={() => {
+                setShowExportOptions(false);
+                exportJSON();
+              }}
+            >
+              <Text style={styles.exportOptionText}>JSON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.exportOption}
+              onPress={() => {
+                setShowExportOptions(false);
+                exportPDF();
+              }}
+            >
+              <Text style={styles.exportOptionText}>PDF</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -194,7 +322,12 @@ function DonutCard({
           return (
             <View key={d.name} style={styles.legendRow}>
               <View style={styles.legendRow2}>
-                <View style={[styles.legendDot, { backgroundColor: colors[i % colors.length] }]} />
+                <View
+                  style={[
+                    styles.legendDot,
+                    { backgroundColor: colors[i % colors.length] },
+                  ]}
+                />
                 <Text style={styles.legendName}>{d.name}</Text>
               </View>
               <Text style={styles.legendPct}>
@@ -438,5 +571,22 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1,
     textTransform: "uppercase",
+  },
+  exportOptions: {
+    marginTop: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  exportOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  exportOptionText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: Colors.navy,
   },
 });
