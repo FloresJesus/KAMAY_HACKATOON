@@ -1,17 +1,15 @@
-import { Colors, Gradients } from '@/constants/colors';
-import { getStockStatus, useProducts } from '@/lib/product-store';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Link, usePathname } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 import {
-  BarChart3,
-  ChevronLeft,
-  History,
   Home,
-  LayoutGrid,
-  Package,
-  Power,
   ReceiptText,
+  Package,
+  BarChart3,
+  History,
+  LayoutGrid,
+  Power,
+  ChevronLeft,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -27,6 +25,8 @@ import {
   type TouchableOpacityProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, Gradients, Shadow } from '@/constants/colors';
+import { getStockStatus, useProducts } from '@/lib/product-store';
 
 type NavItem = {
   to: '/' | '/nueva-venta' | '/stock' | '/reportes' | '/historial' | '/mas';
