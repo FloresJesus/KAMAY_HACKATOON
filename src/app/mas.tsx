@@ -14,17 +14,26 @@ import {
   ShieldCheck,
   User
 } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const items: { icon: LucideIcon; label: string }[] = [
-  { icon: User, label: "Mi Negocio" },
-  { icon: FileSpreadsheet, label: "Exportar" },
-  { icon: Package, label: "Productos" },
-  { icon: HelpCircle, label: "Ayuda" },
-  { icon: BellRing, label: "Avisos" },
-  { icon: ShieldCheck, label: "Seguridad" },
-  { icon: Settings, label: "Ajustes" },
-  { icon: LogOut, label: "Salir" },
+type MasRoute =
+  | "/mas/mi-negocio"
+  | "/mas/exportar"
+  | "/stock"
+  | "/mas/ayuda"
+  | "/mas/avisos"
+  | "/mas/seguridad"
+  | "/mas/ajustes";
+
+const items: { icon: LucideIcon; label: string; route: MasRoute | null }[] = [
+  { icon: User, label: "Mi Negocio", route: "/mas/mi-negocio" },
+  { icon: FileSpreadsheet, label: "Exportar", route: "/mas/exportar" },
+  { icon: Package, label: "Productos", route: "/stock" },
+  { icon: HelpCircle, label: "Ayuda", route: "/mas/ayuda" },
+  { icon: BellRing, label: "Avisos", route: "/mas/avisos" },
+  { icon: ShieldCheck, label: "Seguridad", route: "/mas/seguridad" },
+  { icon: Settings, label: "Ajustes", route: "/mas/ajustes" },
+  { icon: LogOut, label: "Salir", route: null },
 ];
 
 export default function Mas() {
@@ -74,8 +83,26 @@ export default function Mas() {
       <View style={styles.optionsSection}>
         <Text style={styles.optionsTag}>Opciones</Text>
         <View style={styles.optionsGrid}>
-          {items.map(({ icon: Icon, label }) => (
-            <TouchableOpacity key={label} style={styles.optionBtn}>
+          {items.map(({ icon: Icon, label, route }) => (
+            <TouchableOpacity
+              key={label}
+              style={styles.optionBtn}
+              onPress={() => {
+                if (route) {
+                  router.push(route);
+                  return;
+                }
+
+                Alert.alert(
+                  "Cerrar sesión",
+                  "¿Deseas salir de Kamay?",
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    { text: "Salir", style: "destructive", onPress: () => router.replace("/") },
+                  ]
+                );
+              }}
+            >
               <Icon color={Colors.magenta} size={32} strokeWidth={2} />
               <Text style={styles.optionLabel}>{label}</Text>
             </TouchableOpacity>
