@@ -108,11 +108,35 @@ export function useCasilleros() {
     ) => {
       const businessId = await getBusinessId();
       if (!businessId) return;
+
+      const { data: location } = await supabase
+        .from("casillero_locations")
+        .select("id")
+        .eq("name", r.location)
+        .single();
+
+      if (!location) {
+        console.error("Location not found:", r.location);
+        return;
+      }
+
+      const { data: slot } = await supabase
+        .from("casillero_slots")
+        .select("id")
+        .eq("location_id", location.id)
+        .eq("slot_number", r.casilleroNumber)
+        .single();
+
+      if (!slot) {
+        console.error("Slot not found:", r.location, r.casilleroNumber);
+        return;
+      }
+
       const { data } = await supabase
         .from("casillero_reservations")
         .insert({
           business_id: businessId,
-          slot_id: r.productId, // placeholder - real slot_id resolution needed
+          slot_id: slot.id,
           product_id: r.productId,
           product_name: r.productName,
           location: r.location,

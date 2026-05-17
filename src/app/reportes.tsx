@@ -174,7 +174,7 @@ export default function Reports() {
               <TouchableOpacity
                 key={f}
                 onPress={() => setFilter(f)}
-                style={[styles.filterBtn, active && styles.filterBtnActive]}
+                style={styles.filterBtn}
               >
                 {active ? (
                   <LinearGradient
@@ -186,7 +186,9 @@ export default function Reports() {
                     <Text style={styles.filterBtnActiveText}>{f}</Text>
                   </LinearGradient>
                 ) : (
-                  <Text style={styles.filterBtnInactiveText}>{f}</Text>
+                  <View style={styles.filterBtnInactive}>
+                    <Text style={styles.filterBtnInactiveText}>{f}</Text>
+                  </View>
                 )}
               </TouchableOpacity>
             );
@@ -380,15 +382,10 @@ const styles = StyleSheet.create({
   },
   filterBtn: {
     flex: 1,
-    height: 40,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  filterBtnActive: {
-    borderWidth: 0,
   },
   filterBtnGrad: {
-    flex: 1,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -399,14 +396,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: "uppercase",
   },
+  filterBtnInactive: {
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+  },
   filterBtnInactiveText: {
     color: Colors.navy,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    textAlign: "center",
-    lineHeight: 40,
   },
   summaryCard: {
     marginHorizontal: 20,

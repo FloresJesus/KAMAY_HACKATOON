@@ -262,11 +262,11 @@ export default function CasillerosHub() {
 
           <FieButton
             disabled={!validPin || (!selectedProductId && products.length > 0)}
-            onPress={() => {
+            onPress={async () => {
               if (!selectedLocation || !selectedSlot) return;
               const expiresAt = new Date(Date.now() + expiry * 3600 * 1000).toISOString();
               const prod = products.find((p) => p.id === selectedProductId);
-              const newR = addReservation({
+              const newR = await addReservation({
                 productId: selectedProductId,
                 productName: prod?.name ?? "Producto",
                 location: selectedLocation,
@@ -276,8 +276,10 @@ export default function CasillerosHub() {
                 expiresAt,
                 status: "activo",
               });
-              setConfirmedReservation(newR);
-              setView("reserve-step4");
+              if (newR) {
+                setConfirmedReservation(newR);
+                setView("reserve-step4");
+              }
             }}
           >
             Confirmar Reserva
