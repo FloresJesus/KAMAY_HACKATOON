@@ -112,11 +112,20 @@ export default function Dashboard() {
         </View>
       </View>
 
-      <TouchableOpacity onPress={() => router.push("/reportes")} style={styles.reportesBtn}>
-        <FieButton>
-          Ver Reportes Completos{" "}
+      <TouchableOpacity
+        onPress={() => router.push("/reportes")}
+        activeOpacity={0.85}
+        style={styles.reportesBtn}
+      >
+        <LinearGradient
+          colors={Gradients.icon}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.reportesGrad}
+        >
+          <Text style={styles.reportesText}>Ver Reportes Completos</Text>
           <ChevronRight color="#fff" size={20} />
-        </FieButton>
+        </LinearGradient>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/nueva-venta")} style={styles.nuevaVentaBtn}>
@@ -360,6 +369,23 @@ const styles = StyleSheet.create({
   reportesBtn: {
     marginHorizontal: 20,
     marginTop: 16,
+    borderRadius: 28,
+    overflow: "hidden",
+    height: 56,
+  },
+  reportesGrad: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reportesText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   nuevaVentaBtn: {
     marginHorizontal: 20,
