@@ -1,21 +1,21 @@
-import { ClientTime, FieButton, PageHeader } from "@/components/tinka/AppShell";
-import { Colors, Gradients, Shadow } from "@/constants/colors";
-import { useCasilleros } from "@/lib/casillero-store";
-import { getStockStatus, useProducts } from "@/lib/product-store";
-import { useSales } from "@/lib/store";
-import { formatBs } from "@/lib/utils";
-import { LinearGradient } from "expo-linear-gradient";
+import { useMemo } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ChevronRight,
   Lightbulb,
-  Package,
   Plus,
   TrendingUp,
   TriangleAlert,
+  Package,
 } from "lucide-react-native";
-import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSales } from "@/lib/store";
+import { useProducts, getStockStatus } from "@/lib/product-store";
+import { useCasilleros } from "@/lib/casillero-store";
+import { formatBs } from "@/lib/utils";
+import { Colors, Gradients, Shadow } from "@/constants/colors";
+import { PageHeader, ClientTime, FieButton } from "@/components/tinka/AppShell";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -112,11 +112,20 @@ export default function Dashboard() {
         </View>
       </View>
 
-      <TouchableOpacity onPress={() => router.push("/reportes")} style={styles.reportesBtn}>
-        <FieButton>
-          Ver Reportes Completos{" "}
+      <TouchableOpacity
+        onPress={() => router.push("/reportes")}
+        activeOpacity={0.85}
+        style={styles.reportesBtn}
+      >
+        <LinearGradient
+          colors={Gradients.icon}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.reportesGrad}
+        >
+          <Text style={styles.reportesText}>Ver Reportes Completos</Text>
           <ChevronRight color="#fff" size={20} />
-        </FieButton>
+        </LinearGradient>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/nueva-venta")} style={styles.nuevaVentaBtn}>
@@ -360,6 +369,23 @@ const styles = StyleSheet.create({
   reportesBtn: {
     marginHorizontal: 20,
     marginTop: 16,
+    borderRadius: 28,
+    overflow: "hidden",
+    height: 56,
+  },
+  reportesGrad: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reportesText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   nuevaVentaBtn: {
     marginHorizontal: 20,
@@ -570,3 +596,5 @@ const styles = StyleSheet.create({
     color: Colors.mutedForeground,
   },
 });
+
+

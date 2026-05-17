@@ -1,25 +1,37 @@
-import AppShell from "@/components/tinka/AppShell";
-import { Slot } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthProvider } from "@/lib/auth-context";
+import { Slot, usePathname } from "expo-router";
+import { View, ActivityIndicator } from "react-native";
+import { useAuth } from "@/lib/auth-context";
+import AppShell from "../components/tinka/AppShell";
 
-export default function RootLayout() {
+function RootLayoutInner() {
+  const pathname = usePathname();
+  const { isLoading } = useAuth();
+  const isLogin = pathname === "/login" || pathname.startsWith("/auth");
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#E91E8C" />
+      </View>
+    );
+  }
+
+  if (isLogin) {
+    return <Slot />;
+  }
+
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={styles.root}>
-        <StatusBar style="dark" />
-        <AppShell>
-          <Slot />
-        </AppShell>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+    <AppShell>
+      <Slot />
+    </AppShell>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-});
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutInner />
+    </AuthProvider>
+  );
+}

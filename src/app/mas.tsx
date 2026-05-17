@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/tinka/AppShell";
 import { Colors, Gradients, Shadow } from "@/constants/colors";
+import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
@@ -12,96 +13,127 @@ import {
   Package,
   Settings,
   ShieldCheck,
-  User
+  User,
 } from "lucide-react-native";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert, Linking, ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
-type MasRoute =
-  | "/mas/mi-negocio"
-  | "/mas/exportar"
-  | "/stock"
-  | "/mas/ayuda"
-  | "/mas/avisos"
-  | "/mas/seguridad"
-  | "/mas/ajustes";
-
-const items: { icon: LucideIcon; label: string; route: MasRoute | null }[] = [
-  { icon: User, label: "Mi Negocio", route: "/mas/mi-negocio" },
-  { icon: FileSpreadsheet, label: "Exportar", route: "/mas/exportar" },
-  { icon: Package, label: "Productos", route: "/stock" },
-  { icon: HelpCircle, label: "Ayuda", route: "/mas/ayuda" },
-  { icon: BellRing, label: "Avisos", route: "/mas/avisos" },
-  { icon: ShieldCheck, label: "Seguridad", route: "/mas/seguridad" },
-  { icon: Settings, label: "Ajustes", route: "/mas/ajustes" },
-  { icon: LogOut, label: "Salir", route: null },
+const items: { icon: LucideIcon; label: string }[] = [
+  { icon: User, label: "Mi Negocio" },
+  { icon: FileSpreadsheet, label: "Exportar" },
+  { icon: Package, label: "Productos" },
+  { icon: HelpCircle, label: "Ayuda" },
+  { icon: BellRing, label: "Avisos" },
+  { icon: ShieldCheck, label: "Seguridad" },
+  { icon: Settings, label: "Ajustes" },
+  { icon: LogOut, label: "Salir" },
 ];
 
 export default function Mas() {
   const router = useRouter();
 
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Error", "No se pudo cerrar la sesión");
+    }
+  }
+
+  function handleOption(label: string) {
+    switch (label) {
+      case "Mi Negocio":
+        router.push("/");
+        break;
+      case "Exportar":
+        router.push("/reportes");
+        break;
+      case "Productos":
+        router.push("/stock");
+        break;
+      case "Ayuda":
+        // open external help URL
+        Linking.openURL("https://www.bancofie.com.bo/plataformas/tinka").catch(() => {
+          Alert.alert("Error", "No se pudo abrir la ayuda");
+        });
+        break;
+      case "Avisos":
+        router.push("/historial");
+        break;
+      case "Seguridad":
+        router.push("/casilleros");
+        break;
+      case "Ajustes":
+        Alert.alert("Ajustes", "Página de ajustes no disponible aún.");
+        break;
+      case "Salir":
+        handleLogout();
+        break;
+      default:
+        Alert.alert("Opción", `Seleccionaste: ${label}`);
+    }
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <PageHeader title="Mas Opciones" showBack onBack={() => router.push("/")} />
+      <PageHeader
+        title="Mas Opciones"
+        showBack
+        onBack={() => router.push("/")}
+      />
 
       <View style={styles.tinkaSection}>
         <Text style={styles.tinkaTag}>Tinka · Banco FIE</Text>
 
-        <TouchableOpacity onPress={() => (router as any).push("/casilleros")} style={styles.tinkaCard}>
+        <TouchableOpacity
+          onPress={() => (router as any).push("/casilleros")}
+          style={styles.tinkaCard}
+        >
+          <LinearGradient
+            colors={Gradients.icon}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tinkaCardTop}
+          />
+          <View style={styles.tinkaCardBody}>
             <LinearGradient
               colors={Gradients.icon}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.tinkaCardTop}
-            />
-            <View style={styles.tinkaCardBody}>
-              <LinearGradient
-                colors={Gradients.icon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tinkaIcon}
-              >
-                <Lock color="#fff" size={24} strokeWidth={2.25} />
-              </LinearGradient>
-              <View style={styles.tinkaTextArea}>
-                <Text style={styles.tinkaTitle}>Casilleros Tinka</Text>
-                <Text style={styles.tinkaDesc}>
-                  Entrega tus productos de forma rapida y segura
-                </Text>
-              </View>
-              <LinearGradient
-                colors={Gradients.icon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tinkaBadge}
-              >
-                <Text style={styles.tinkaBadgeText}>Acceder</Text>
-              </LinearGradient>
+              style={styles.tinkaIcon}
+            >
+              <Lock color="#fff" size={24} strokeWidth={2.25} />
+            </LinearGradient>
+            <View style={styles.tinkaTextArea}>
+              <Text style={styles.tinkaTitle}>Casilleros Tinka</Text>
+              <Text style={styles.tinkaDesc}>
+                Entrega tus productos de forma rapida y segura
+              </Text>
             </View>
-          </TouchableOpacity>
+            <LinearGradient
+              colors={Gradients.icon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tinkaBadge}
+            >
+              <Text style={styles.tinkaBadgeText}>Acceder</Text>
+            </LinearGradient>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.optionsSection}>
         <Text style={styles.optionsTag}>Opciones</Text>
         <View style={styles.optionsGrid}>
-          {items.map(({ icon: Icon, label, route }) => (
+          {items.map(({ icon: Icon, label }) => (
             <TouchableOpacity
               key={label}
               style={styles.optionBtn}
-              onPress={() => {
-                if (route) {
-                  router.push(route);
-                  return;
-                }
-
-                Alert.alert(
-                  "Cerrar sesión",
-                  "¿Deseas salir de Kamay?",
-                  [
-                    { text: "Cancelar", style: "cancel" },
-                    { text: "Salir", style: "destructive", onPress: () => router.replace("/") },
-                  ]
-                );
-              }}
+              onPress={() => handleOption(label)}
             >
               <Icon color={Colors.magenta} size={32} strokeWidth={2} />
               <Text style={styles.optionLabel}>{label}</Text>
@@ -262,4 +294,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-

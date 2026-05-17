@@ -4,34 +4,33 @@
     "slug": "kamay",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/logo.png",
     "scheme": "kamay",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true
     },
     "android": {
+      "package": "com.tinka.kamay",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#F4F4F6",
+        "foregroundImage": "./assets/logo.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#1B3A6B",
           "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "image": "./assets/logo.png",
+            "imageWidth": 140
           }
         }
       ],
@@ -40,6 +39,14 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "supabaseUrl": "https://rqivgkagsqzvuiikhinp.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxaXZna2Fnc3F6dnVpaWtoaW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NTExMDgsImV4cCI6MjA5NDUyNzEwOH0.NjZNm2WD1-YeUilB7mALKLs6ZObRB7QOuwf4DVmWVus",
+      "router": {},
+      "eas": {
+        "projectId": "9f9ccb0b-949f-42c1-ba50-5fb918d9daf7"
+      }
     }
   }
 }

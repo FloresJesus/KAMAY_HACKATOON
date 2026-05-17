@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -71,11 +72,13 @@ export default function NewSale() {
   const { products, deductStock } = useProducts();
   const router = useRouter();
   const [amount, setAmount] = useState("");
+  const [qty, setQty] = useState("1");
   const [product, setProduct] = useState("");
   const [linkedProductId, setLinkedProductId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>(CATEGORIES[0].label);
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [location, setLocation] = useState<Location>("Tienda");
+  const [showQR, setShowQR] = useState(false);
   const [success, setSuccess] = useState<{
     product: string;
     amount: number;
@@ -85,6 +88,15 @@ export default function NewSale() {
     available: number;
     productName: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!linkedProductId) return;
+    const linked = products.find((p) => p.id === linkedProductId);
+    if (linked) {
+      const quantity = parseInt(qty) || 1;
+      setAmount(String(linked.price * quantity));
+    }
+  }, [qty, linkedProductId, products]);
 
   const topProducts = useMemo(() => {
     const count = new Map<string, number>();
@@ -101,26 +113,33 @@ export default function NewSale() {
     setProduct(p.name);
     setLinkedProductId(p.id);
     setAmount(String(p.price));
+    setQty("1");
   };
 
   const doSubmit = () => {
     const value = parseFloat(amount.replace(",", "."));
+    const quantity = parseInt(qty) || 1;
     if (!value || !product) return;
     const saleId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    addSale({ product, qty: 1, category, method, location, amount: value });
-    if (linkedProductId) {
-      deductStock(linkedProductId, 1, saleId);
+    addSale({ product, qty: quantity, category, method, location, amount: value });
+
+    const match = products.find(
+      (p) => p.id === linkedProductId || p.name === product.trim()
+    );
+    if (match && match.stockCurrent >= quantity) {
+      deductStock(match.id, quantity, saleId);
     }
     setSuccess({ product, amount: value, method });
   };
 
   const submit = () => {
-    if (linkedProductId) {
-      const linked = products.find((p) => p.id === linkedProductId);
-      if (linked && linked.stockCurrent <= 0) {
-        setStockWarning({ available: linked.stockCurrent, productName: linked.name });
-        return;
-      }
+    const match = products.find(
+      (p) => p.id === linkedProductId || p.name === product.trim()
+    );
+    const quantity = parseInt(qty) || 1;
+    if (match && match.stockCurrent < quantity) {
+      setStockWarning({ available: match.stockCurrent, productName: match.name });
+      return;
     }
     doSubmit();
   };
@@ -151,6 +170,7 @@ export default function NewSale() {
                 setAmount("");
                 setProduct("");
                 setLinkedProductId(null);
+                setQty("1");
               }}
             >
               Nueva Venta
@@ -326,6 +346,16 @@ export default function NewSale() {
         </View>
 
         <View>
+          <FieLabel>Cantidad</FieLabel>
+          <FieInput
+            keyboardType="number-pad"
+            value={qty}
+            onChangeText={(t) => setQty(t.replace(/[^\d]/g, "") || "1")}
+            placeholder="1"
+          />
+        </View>
+
+        <View>
           <FieLabel>Monto (Bs.)</FieLabel>
           <FieInput
             keyboardType="decimal-pad"
@@ -372,7 +402,7 @@ export default function NewSale() {
         <View>
           <FieLabel>Metodo de pago</FieLabel>
           <View style={styles.grid4}>
-            {PAYMENT_METHODS.map((m) => {
+            {PAYMENT_METHODS.filter((m) => m.id !== "Otro").map((m) => {
               const Icon = ICON_MAP[m.icon] || Package;
               const active = method === m.id;
               return (
@@ -404,7 +434,33 @@ export default function NewSale() {
               );
             })}
           </View>
+          {method === "QR" && (
+            <TouchableOpacity
+              onPress={() => setShowQR(true)}
+              style={styles.qrBtn}
+            >
+              <QrCode color={Colors.magenta} size={20} />
+              <Text style={styles.qrBtnText}>Ver Código QR</Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        <Modal visible={showQR} transparent animationType="fade">
+          <View style={styles.qrOverlay}>
+            <View style={styles.qrModal}>
+              <Image
+                source={require("../../assets/qr.png")}
+                style={styles.qrImage}
+              />
+              <TouchableOpacity
+                onPress={() => setShowQR(false)}
+                style={styles.qrCloseBtn}
+              >
+                <Text style={styles.qrCloseText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         <View>
           <FieLabel>Ubicacion</FieLabel>
@@ -797,5 +853,60 @@ const styles = StyleSheet.create({
   },
   rowValueHighlight: {
     fontSize: 18,
+  },
+  qrBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: Colors.magenta,
+    backgroundColor: Colors.accent,
+  },
+  qrBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    color: Colors.magenta,
+    textTransform: "uppercase",
+  },
+  qrOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  qrModal: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    gap: 20,
+    ...Shadow.elevated,
+  },
+  qrImage: {
+    width: 260,
+    height: 260,
+    borderRadius: 16,
+    resizeMode: "contain",
+  },
+  qrCloseBtn: {
+    width: "100%",
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: Colors.navy,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qrCloseText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    color: Colors.navy,
+    textTransform: "uppercase",
   },
 });
