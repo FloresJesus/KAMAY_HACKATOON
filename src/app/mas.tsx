@@ -12,9 +12,15 @@ import {
   Package,
   Settings,
   ShieldCheck,
-  User
+  User,
 } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert, Linking, ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 const items: { icon: LucideIcon; label: string }[] = [
   { icon: User, label: "Mi Negocio" },
@@ -30,52 +36,98 @@ const items: { icon: LucideIcon; label: string }[] = [
 export default function Mas() {
   const router = useRouter();
 
+  function handleOption(label: string) {
+    switch (label) {
+      case "Mi Negocio":
+        router.push("/");
+        break;
+      case "Exportar":
+        router.push("/reportes");
+        break;
+      case "Productos":
+        router.push("/stock");
+        break;
+      case "Ayuda":
+        // open external help URL
+        Linking.openURL("https://www.bancofie.com.bo/plataformas/tinka").catch(() => {
+          Alert.alert("Error", "No se pudo abrir la ayuda");
+        });
+        break;
+      case "Avisos":
+        router.push("/historial");
+        break;
+      case "Seguridad":
+        router.push("/casilleros");
+        break;
+      case "Ajustes":
+        Alert.alert("Ajustes", "Página de ajustes no disponible aún.");
+        break;
+      case "Salir":
+        // simple logout: navigate to login (replace so back doesn't return)
+        router.replace("/");
+        break;
+      default:
+        Alert.alert("Opción", `Seleccionaste: ${label}`);
+    }
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <PageHeader title="Mas Opciones" showBack onBack={() => router.push("/")} />
+      <PageHeader
+        title="Mas Opciones"
+        showBack
+        onBack={() => router.push("/")}
+      />
 
       <View style={styles.tinkaSection}>
         <Text style={styles.tinkaTag}>Tinka · Banco FIE</Text>
 
-        <TouchableOpacity onPress={() => (router as any).push("/casilleros")} style={styles.tinkaCard}>
+        <TouchableOpacity
+          onPress={() => (router as any).push("/casilleros")}
+          style={styles.tinkaCard}
+        >
+          <LinearGradient
+            colors={Gradients.icon}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tinkaCardTop}
+          />
+          <View style={styles.tinkaCardBody}>
             <LinearGradient
               colors={Gradients.icon}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.tinkaCardTop}
-            />
-            <View style={styles.tinkaCardBody}>
-              <LinearGradient
-                colors={Gradients.icon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tinkaIcon}
-              >
-                <Lock color="#fff" size={24} strokeWidth={2.25} />
-              </LinearGradient>
-              <View style={styles.tinkaTextArea}>
-                <Text style={styles.tinkaTitle}>Casilleros Tinka</Text>
-                <Text style={styles.tinkaDesc}>
-                  Entrega tus productos de forma rapida y segura
-                </Text>
-              </View>
-              <LinearGradient
-                colors={Gradients.icon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tinkaBadge}
-              >
-                <Text style={styles.tinkaBadgeText}>Acceder</Text>
-              </LinearGradient>
+              style={styles.tinkaIcon}
+            >
+              <Lock color="#fff" size={24} strokeWidth={2.25} />
+            </LinearGradient>
+            <View style={styles.tinkaTextArea}>
+              <Text style={styles.tinkaTitle}>Casilleros Tinka</Text>
+              <Text style={styles.tinkaDesc}>
+                Entrega tus productos de forma rapida y segura
+              </Text>
             </View>
-          </TouchableOpacity>
+            <LinearGradient
+              colors={Gradients.icon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tinkaBadge}
+            >
+              <Text style={styles.tinkaBadgeText}>Acceder</Text>
+            </LinearGradient>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.optionsSection}>
         <Text style={styles.optionsTag}>Opciones</Text>
         <View style={styles.optionsGrid}>
           {items.map(({ icon: Icon, label }) => (
-            <TouchableOpacity key={label} style={styles.optionBtn}>
+            <TouchableOpacity
+              key={label}
+              style={styles.optionBtn}
+              onPress={() => handleOption(label)}
+            >
               <Icon color={Colors.magenta} size={32} strokeWidth={2} />
               <Text style={styles.optionLabel}>{label}</Text>
             </TouchableOpacity>
@@ -235,4 +287,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-
