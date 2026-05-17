@@ -1,46 +1,55 @@
-import {
-    TriangleAlert as AlertTriangle,
-    Banknote,
-    Bike,
-    Calendar,
-    Check,
-    Landmark,
-    MapPin,
-    MoveHorizontal as MoreHorizontal,
-    Package,
-    Palette,
-    QrCode,
-    Scissors,
-    ShoppingBag,
-    Store,
-    Tent,
-    UtensilsCrossed,
-    Wrench,
-} from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TextInputProps,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-
+import { LinearGradient } from "expo-linear-gradient";
 import {
-    CATEGORIES,
-    LOCATIONS,
-    PAYMENT_METHODS,
-    formatBs,
-    type Location,
-    type PaymentMethod,
-} from "@/components/tinka/mock-data";
-import { getStockStatus, useProducts } from "@/components/tinka/product-store";
-import { useSales } from "@/components/tinka/store";
+  UtensilsCrossed,
+  ShoppingBag,
+  Wrench,
+  Palette,
+  Scissors,
+  Package,
+  Banknote,
+  QrCode,
+  Landmark,
+  MoreHorizontal,
+  Store,
+  Tent,
+  Bike,
+  MapPin,
+  Check,
+  Calendar,
+  Zap,
+  TriangleAlert,
+} from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { useSales } from "@/lib/store";
+import { useProducts, getStockStatus } from "@/lib/product-store";
+import { formatBs } from "@/lib/utils";
+import {
+  CATEGORIES,
+  PAYMENT_METHODS,
+  LOCATIONS,
+  type PaymentMethod,
+  type Location,
+} from "@/lib/mock-data";
+import { Colors, Gradients, Shadow } from "@/constants/colors";
+import {
+  PageHeader,
+  FieLabel,
+  FieInput,
+  FieButton,
+  ClientTime,
+} from "@/components/tinka/AppShell";
 
-const ICONS: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ color?: string; size?: number; strokeWidth?: number }>> = {
   UtensilsCrossed,
   ShoppingBag,
   Wrench,
@@ -57,46 +66,38 @@ const ICONS: Record<string, any> = {
   MapPin,
 };
 
-type NewSaleScreenProps = {
-  navigation: {
-    goBack: () => void;
-  };
-};
-
-export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
+export default function NewSale() {
   const { sales, addSale } = useSales();
   const { products, deductStock } = useProducts();
-
+  const router = useRouter();
   const [amount, setAmount] = useState("");
   const [product, setProduct] = useState("");
   const [linkedProductId, setLinkedProductId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>(CATEGORIES[0].label);
   const [method, setMethod] = useState<PaymentMethod>("Efectivo");
   const [location, setLocation] = useState<Location>("Tienda");
-  const [success, setSuccess] = useState<null | {
+  const [success, setSuccess] = useState<{
     product: string;
     amount: number;
     method: PaymentMethod;
-  }>(null);
-  const [stockWarning, setStockWarning] = useState<null | {
+  } | null>(null);
+  const [stockWarning, setStockWarning] = useState<{
     available: number;
     productName: string;
-  }>(null);
+  } | null>(null);
 
   const topProducts = useMemo(() => {
     const count = new Map<string, number>();
-    sales.forEach((s) => {
-      count.set(s.product, (count.get(s.product) ?? 0) + 1);
-    });
+    sales.forEach((s) => count.set(s.product, (count.get(s.product) ?? 0) + 1));
     return [...count.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([p]) => p);
   }, [sales]);
 
-  const nowIso = useMemo(() => new Date().toLocaleString(), []);
+  const nowIso = useMemo(() => new Date().toISOString(), []);
 
-  const handleSelectCatalogProduct = (p: (typeof products)[number]) => {
+  const handleSelectCatalogProduct = (p: (typeof products)[0]) => {
     setProduct(p.name);
     setLinkedProductId(p.id);
     setAmount(String(p.price));
@@ -105,20 +106,11 @@ export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
   const doSubmit = () => {
     const value = parseFloat(amount.replace(",", "."));
     if (!value || !product) return;
-
-    addSale({
-      product,
-      qty: 1,
-      category,
-      method,
-      location,
-      amount: value,
-    });
-
+    const saleId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    addSale({ product, qty: 1, category, method, location, amount: value });
     if (linkedProductId) {
-      deductStock(linkedProductId, 1, crypto.randomUUID());
+      deductStock(linkedProductId, 1, saleId);
     }
-
     setSuccess({ product, amount: value, method });
   };
 
@@ -126,10 +118,7 @@ export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
     if (linkedProductId) {
       const linked = products.find((p) => p.id === linkedProductId);
       if (linked && linked.stockCurrent <= 0) {
-        setStockWarning({
-          available: linked.stockCurrent,
-          productName: linked.name,
-        });
+        setStockWarning({ available: linked.stockCurrent, productName: linked.name });
         return;
       }
     }
@@ -138,121 +127,147 @@ export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
 
   if (success) {
     return (
-      <View style={styles.screen}>
-        <View style={styles.successBox}>
-          <View style={styles.successIcon}>
-            <Check size={48} color="#fff" strokeWidth={3} />
-          </View>
-          <Text style={styles.successTitle}>Venta registrada</Text>
-          <View style={styles.successDetails}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.successContent}>
+        <PageHeader title="Venta Exitosa" />
+        <View style={styles.successInner}>
+          <LinearGradient
+            colors={Gradients.icon}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.successIcon}
+          >
+            <Check color="#fff" size={48} strokeWidth={3} />
+          </LinearGradient>
+          <Text style={styles.successTitle}>Venta registrada con exito</Text>
+          <View style={styles.successCard}>
             <Row label="Producto" value={success.product} />
             <Row label="Monto" value={formatBs(success.amount)} highlight />
-            <Row label="Método" value={success.method} />
+            <Row label="Metodo" value={success.method} />
           </View>
-          <TouchableOpacity
-            onPress={() => {
-              setSuccess(null);
-              setAmount("");
-              setProduct("");
-              setLinkedProductId(null);
-            }}
-            style={styles.primaryButton}
-          >
-            <Text style={styles.primaryButtonText}>Nueva Venta</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={navigation.goBack}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Volver</Text>
-          </TouchableOpacity>
+          <View style={styles.successActions}>
+            <FieButton
+              onPress={() => {
+                setSuccess(null);
+                setAmount("");
+                setProduct("");
+                setLinkedProductId(null);
+              }}
+            >
+              Nueva Venta
+            </FieButton>
+            <TouchableOpacity
+              onPress={() => router.push("/")}
+              style={styles.outlineBtn}
+            >
+              <Text style={styles.outlineBtnText}>Volver al inicio</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
   return (
-    <View style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <Text style={styles.pageTitle}>Registrar Venta</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <PageHeader
+        title="Registrar Venta"
+        showBack
+        onBack={() => router.push("/")}
+      />
 
-        <Modal visible={!!stockWarning} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBox}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIcon}>
-                  <AlertTriangle size={24} color="#E94560" />
-                </View>
-                <View style={styles.modalTextBox}>
-                  <Text style={styles.modalTitle}>Stock insuficiente</Text>
-                  <Text style={styles.modalMessage}>
-                    Solo tienes {stockWarning?.available} unidades disponibles
-                    de {stockWarning?.productName}
-                  </Text>
-                </View>
+      <Modal visible={!!stockWarning} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <TriangleAlert color={Colors.danger} size={24} strokeWidth={2.5} />
               </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  onPress={() => setStockWarning(null)}
-                  style={styles.modalCancelButton}
-                >
-                  <Text style={styles.modalCancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setStockWarning(null);
-                    doSubmit();
-                  }}
-                  style={styles.modalConfirmButton}
-                >
-                  <Text style={styles.modalConfirmText}>Continuar</Text>
-                </TouchableOpacity>
+              <View style={styles.modalHeaderText}>
+                <Text style={styles.modalTitle}>Stock Insuficiente</Text>
+                <Text style={styles.modalDesc}>
+                  Solo tienes {stockWarning?.available} unidades disponibles de{" "}
+                  {stockWarning?.productName}.
+                </Text>
               </View>
             </View>
+            <Text style={styles.modalQuestion}>
+              Deseas continuar de todas formas?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => setStockWarning(null)}
+                style={styles.modalCancelBtn}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setStockWarning(null);
+                  doSubmit();
+                }}
+                style={styles.modalConfirmBtn}
+              >
+                <LinearGradient
+                  colors={Gradients.icon}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalConfirmGrad}
+                >
+                  <Text style={styles.modalConfirmText}>Continuar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
+      <View style={styles.form}>
         {products.length > 0 && (
-          <View style={styles.section}>
-            <Label text="Desde tu catálogo" />
-            <View style={styles.tagContainer}>
+          <View>
+            <FieLabel>
+              <Text style={styles.labelIcon}>
+                <Package color={Colors.magenta} size={12} /> Desde tu catalogo
+              </Text>
+            </FieLabel>
+            <View style={styles.chipsRow}>
               {products.map((p) => {
                 const status = getStockStatus(p);
                 const active = linkedProductId === p.id;
                 const dotColor =
                   status === "ok"
-                    ? "#1FB66B"
+                    ? Colors.success
                     : status === "low"
-                      ? "#F5A623"
-                      : "#E94560";
+                      ? Colors.warning
+                      : Colors.danger;
                 return (
                   <TouchableOpacity
                     key={p.id}
                     onPress={() => handleSelectCatalogProduct(p)}
                     style={[
-                      styles.catalogTag,
-                      active
-                        ? styles.catalogTagActive
-                        : styles.catalogTagInactive,
+                      styles.chip,
+                      active ? styles.chipActive : styles.chipInactive,
                     ]}
                   >
-                    <View
-                      style={[
-                        styles.catalogDot,
-                        { backgroundColor: active ? "#fff" : dotColor },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.catalogTagText,
-                        active ? styles.catalogTagTextActive : {},
-                      ]}
-                    >
-                      {p.name}
-                    </Text>
+                    {active ? (
+                      <LinearGradient
+                        colors={Gradients.icon}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.chipGrad}
+                      >
+                        <View
+                          style={[styles.chipDot, { backgroundColor: "#fff" }]}
+                        />
+                        <Text style={styles.chipActiveText}>{p.name}</Text>
+                      </LinearGradient>
+                    ) : (
+                      <>
+                        <View
+                          style={[styles.chipDot, { backgroundColor: dotColor }]}
+                        />
+                        <Text style={styles.chipInactiveText}>{p.name}</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -261,81 +276,89 @@ export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
         )}
 
         {topProducts.length > 0 && (
-          <View style={styles.section}>
-            <Label text="Acceso rápido" />
-            <View style={styles.tagContainer}>
-              {topProducts.map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  onPress={() => {
-                    setProduct(p);
-                    setLinkedProductId(null);
-                  }}
-                  style={[
-                    styles.quickAccessTag,
-                    product === p && !linkedProductId
-                      ? styles.quickAccessTagActive
-                      : styles.quickAccessTagInactive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.quickAccessText,
-                      product === p && !linkedProductId
-                        ? styles.quickAccessTextActive
-                        : {},
-                    ]}
+          <View>
+            <FieLabel>
+              <Text style={styles.labelIcon}>
+                <Zap color={Colors.magenta} size={12} /> Acceso rapido
+              </Text>
+            </FieLabel>
+            <View style={styles.chipsRow}>
+              {topProducts.map((p) => {
+                const active = product === p && !linkedProductId;
+                return (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => {
+                      setProduct(p);
+                      setLinkedProductId(null);
+                    }}
+                    style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
                   >
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    {active ? (
+                      <LinearGradient
+                        colors={Gradients.icon}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.chipGrad}
+                      >
+                        <Text style={styles.chipActiveText}>{p}</Text>
+                      </LinearGradient>
+                    ) : (
+                      <Text style={styles.chipInactiveText}>{p}</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         )}
 
-        <View style={styles.section}>
-          <Label text="Producto o Servicio" />
-          <Input
+        <View>
+          <FieLabel>Producto o Servicio</FieLabel>
+          <FieInput
             value={product}
-            onChangeText={(text) => {
-              setProduct(text);
+            onChangeText={(t) => {
+              setProduct(t);
               setLinkedProductId(null);
             }}
             placeholder="Ej. Almuerzo familiar"
           />
         </View>
 
-        <View style={styles.section}>
-          <Label text="Monto (Bs.)" />
-          <Input
+        <View>
+          <FieLabel>Monto (Bs.)</FieLabel>
+          <FieInput
             keyboardType="decimal-pad"
             value={amount}
-            onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ""))}
+            onChangeText={(t) => setAmount(t.replace(/[^\d.,]/g, ""))}
             placeholder="0.00"
           />
         </View>
 
-        <View style={styles.section}>
-          <Label text="Categoría" />
-          <View style={styles.gridRow}>
+        <View>
+          <FieLabel>Categoria</FieLabel>
+          <View style={styles.grid3}>
             {CATEGORIES.map((c) => {
-              const Icon = ICONS[c.icon];
+              const Icon = ICON_MAP[c.icon] || Package;
               const active = category === c.label;
               return (
                 <TouchableOpacity
                   key={c.id}
                   onPress={() => setCategory(c.label)}
                   style={[
-                    styles.card,
-                    active ? styles.cardActive : styles.cardInactive,
+                    styles.gridItem3,
+                    active ? styles.gridItemActive3 : styles.gridItemInactive3,
                   ]}
                 >
-                  <Icon size={24} color={active ? "#E91E8C" : "#1B3A6B"} />
+                  <Icon
+                    color={active ? Colors.magenta : Colors.navy}
+                    size={24}
+                    strokeWidth={2}
+                  />
                   <Text
                     style={[
-                      styles.cardText,
-                      active ? styles.cardTextActive : {},
+                      styles.gridLabel3,
+                      active && { color: Colors.magenta },
                     ]}
                   >
                     {c.label}
@@ -346,96 +369,98 @@ export default function NewSaleScreen({ navigation }: NewSaleScreenProps) {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Label text="Método de pago" />
-          <View style={styles.gridRow}>
+        <View>
+          <FieLabel>Metodo de pago</FieLabel>
+          <View style={styles.grid4}>
             {PAYMENT_METHODS.map((m) => {
-              const Icon = ICONS[m.icon];
+              const Icon = ICON_MAP[m.icon] || Package;
               const active = method === m.id;
               return (
                 <TouchableOpacity
                   key={m.id}
                   onPress={() => setMethod(m.id)}
                   style={[
-                    styles.smallCard,
-                    active ? styles.smallCardActive : styles.smallCardInactive,
+                    styles.gridItem4,
+                    active ? styles.gridItemActive : styles.gridItemInactive,
                   ]}
                 >
-                  <Icon size={20} color={active ? "#fff" : "#1B3A6B"} />
-                  <Text
-                    style={[
-                      styles.smallCardText,
-                      active ? styles.smallCardTextActive : {},
-                    ]}
-                  >
-                    {m.id}
-                  </Text>
+                  {active ? (
+                    <LinearGradient
+                      colors={Gradients.icon}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.gridGrad4}
+                    >
+                      <Icon color="#fff" size={20} strokeWidth={2.25} />
+                      <Text style={styles.gridActiveText}>{m.id}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <>
+                      <Icon color={Colors.navy} size={20} strokeWidth={2.25} />
+                      <Text style={styles.gridInactiveText}>{m.id}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Label text="Ubicación" />
-          <View style={styles.gridRow}>
+        <View>
+          <FieLabel>Ubicacion</FieLabel>
+          <View style={styles.grid4}>
             {LOCATIONS.map((l) => {
-              const Icon = ICONS[l.icon];
+              const Icon = ICON_MAP[l.icon] || MapPin;
               const active = location === l.id;
               return (
                 <TouchableOpacity
                   key={l.id}
                   onPress={() => setLocation(l.id)}
                   style={[
-                    styles.smallCard,
-                    active ? styles.smallCardActive : styles.smallCardInactive,
+                    styles.gridItem4,
+                    active ? styles.gridItemActive : styles.gridItemInactive,
                   ]}
                 >
-                  <Icon size={20} color={active ? "#fff" : "#1B3A6B"} />
-                  <Text
-                    style={[
-                      styles.smallCardText,
-                      active ? styles.smallCardTextActive : {},
-                    ]}
-                  >
-                    {l.id}
-                  </Text>
+                  {active ? (
+                    <LinearGradient
+                      colors={Gradients.icon}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.gridGrad4}
+                    >
+                      <Icon color="#fff" size={20} strokeWidth={2.25} />
+                      <Text style={styles.gridActiveText}>{l.id}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <>
+                      <Icon color={Colors.navy} size={20} strokeWidth={2.25} />
+                      <Text style={styles.gridInactiveText}>{l.id}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Label text="Fecha y hora" />
+        <View>
+          <FieLabel>Fecha y hora</FieLabel>
           <View style={styles.dateRow}>
-            <Text style={styles.dateText}>{nowIso}</Text>
-            <Calendar size={20} color="#E91E8C" />
+            <Text style={styles.dateText}>
+              <ClientTime iso={nowIso} mode="datetime" />
+            </Text>
+            <Calendar color={Colors.magenta} size={20} />
           </View>
         </View>
 
-        <TouchableOpacity
-          disabled={!product || !amount}
+        <FieButton
           onPress={submit}
-          style={[
-            styles.submitButton,
-            !product || !amount ? styles.submitButtonDisabled : {},
-          ]}
+          disabled={!product || !amount}
         >
-          <Text style={styles.submitButtonText}>Registrar Venta</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
-}
-
-function Label({ text }: { text: string }) {
-  return <Text style={styles.label}>{text}</Text>;
-}
-
-function Input(props: TextInputProps) {
-  return (
-    <TextInput {...props} placeholderTextColor="#94A3B8" style={styles.input} />
+          Registrar Venta
+        </FieButton>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -451,9 +476,7 @@ function Row({
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text
-        style={[styles.rowValue, highlight ? styles.rowValueHighlight : {}]}
-      >
+      <Text style={[styles.rowValue, highlight && styles.rowValueHighlight]}>
         {value}
       </Text>
     </View>
@@ -463,331 +486,316 @@ function Row({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.background,
   },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 60,
+  content: {
     paddingBottom: 40,
   },
-  pageTitle: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#1B3A6B",
-    marginBottom: 24,
+  successContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
   },
-  successBox: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "center",
+  successInner: {
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 24,
+    marginTop: 24,
   },
   successIcon: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "#E91E8C",
-    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "center",
+    ...Shadow.glow,
   },
   successTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#1B3A6B",
-    marginBottom: 20,
-  },
-  successDetails: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-  },
-  primaryButton: {
-    width: "100%",
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#E91E8C",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: Colors.navy,
+    textAlign: "center",
+    marginTop: 20,
   },
-  secondaryButton: {
+  successCard: {
+    width: "100%",
+    marginTop: 24,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 20,
+    gap: 12,
+    ...Shadow.soft,
+  },
+  successActions: {
+    width: "100%",
+    marginTop: 24,
+    gap: 12,
+  },
+  outlineBtn: {
     width: "100%",
     height: 56,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: "#1B3A6B",
-    justifyContent: "center",
+    borderColor: Colors.navy,
     alignItems: "center",
+    justifyContent: "center",
   },
-  secondaryButtonText: {
-    color: "#1B3A6B",
-    fontSize: 16,
+  outlineBtnText: {
+    color: Colors.navy,
     fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-end",
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
   },
-  modalBox: {
-    backgroundColor: "#FFFFFF",
+  modal: {
+    backgroundColor: Colors.card,
     borderRadius: 24,
-    padding: 20,
+    padding: 24,
+    ...Shadow.elevated,
   },
   modalHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
   modalIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#FEE2E6",
+    backgroundColor: "#FFF0F3",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
-  modalTextBox: {
+  modalHeaderText: {
     flex: 1,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "800",
-    color: "#E94560",
-    marginBottom: 6,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Colors.danger,
   },
-  modalMessage: {
-    color: "#6B7280",
-    fontSize: 14,
-    lineHeight: 20,
+  modalDesc: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.mutedForeground,
+    marginTop: 2,
+  },
+  modalQuestion: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.navy,
+    marginBottom: 20,
   },
   modalActions: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
-  modalCancelButton: {
+  modalCancelBtn: {
     flex: 1,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#1B3A6B",
-    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.navy,
     alignItems: "center",
-  },
-  modalConfirmButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#E91E8C",
     justifyContent: "center",
-    alignItems: "center",
   },
   modalCancelText: {
-    color: "#1B3A6B",
-    fontWeight: "700",
+    color: Colors.navy,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    overflow: "hidden",
+  },
+  modalConfirmGrad: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalConfirmText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  section: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 12,
+    color: "#fff",
+    fontSize: 11,
     fontWeight: "800",
-    letterSpacing: 1,
-    color: "#E91E8C",
-    marginBottom: 10,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
-  input: {
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#1B3A6B",
+  form: {
     paddingHorizontal: 20,
-    color: "#1B3A6B",
-    fontWeight: "700",
-    fontSize: 16,
+    gap: 20,
+    paddingBottom: 24,
   },
-  tagContainer: {
+  labelIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 12,
+    gap: 8,
   },
-  catalogTag: {
+  chip: {
+    borderRadius: 20,
+    height: 40,
+    overflow: "hidden",
+  },
+  chipActive: {
+    borderWidth: 0,
+  },
+  chipInactive: {
+    borderWidth: 2,
+    borderColor: "rgba(27,58,107,0.7)",
+    backgroundColor: Colors.card,
+  },
+  chipGrad: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     height: 40,
-    borderRadius: 999,
-    marginRight: 10,
-    marginBottom: 10,
+    gap: 6,
   },
-  catalogTagActive: {
-    backgroundColor: "#E91E8C",
-  },
-  catalogTagInactive: {
-    borderWidth: 1,
-    borderColor: "#1B3A6B",
-  },
-  catalogDot: {
+  chipDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 8,
   },
-  catalogTagText: {
+  chipActiveText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#1B3A6B",
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: "#fff",
   },
-  catalogTagTextActive: {
-    color: "#FFFFFF",
-  },
-  quickAccessTag: {
+  chipInactiveText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Colors.navy,
     paddingHorizontal: 16,
-    height: 40,
-    borderRadius: 999,
-    marginRight: 10,
-    marginBottom: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    lineHeight: 40,
   },
-  quickAccessTagActive: {
-    backgroundColor: "#E91E8C",
-  },
-  quickAccessTagInactive: {
-    borderWidth: 1,
-    borderColor: "#1B3A6B",
-  },
-  quickAccessText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1B3A6B",
-  },
-  quickAccessTextActive: {
-    color: "#FFFFFF",
-  },
-  gridRow: {
+  grid3: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginTop: 12,
+    gap: 8,
   },
-  card: {
-    width: "31%",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
+  gridItem3: {
+    width: (Dimensions.get("window").width - 56) / 3,
+    borderRadius: 16,
+    borderWidth: 2,
+    padding: 12,
     alignItems: "center",
+    gap: 6,
   },
-  cardActive: {
-    backgroundColor: "#FCE7F3",
-    borderWidth: 1,
-    borderColor: "#E91E8C",
+  gridItemActive3: {
+    borderColor: Colors.magenta,
+    backgroundColor: Colors.accent,
   },
-  cardInactive: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  gridItemInactive3: {
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
   },
-  cardText: {
-    marginTop: 10,
+  gridLabel3: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#1B3A6B",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Colors.navy,
     textAlign: "center",
   },
-  cardTextActive: {
-    color: "#E91E8C",
+  grid4: {
+    flexDirection: "row",
+    gap: 8,
   },
-  smallCard: {
-    width: "23%",
-    borderRadius: 20,
-    paddingVertical: 12,
-    marginBottom: 12,
+  gridItem4: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 2,
+    height: 72,
+  },
+  gridItemActive: {
+    borderColor: "transparent",
+  },
+  gridItemInactive: {
+    borderColor: "rgba(27,58,107,0.6)",
+    backgroundColor: Colors.card,
     alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
-  smallCardActive: {
-    backgroundColor: "#E91E8C",
-    borderWidth: 1,
-    borderColor: "#E91E8C",
+  gridGrad4: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
-  smallCardInactive: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  smallCardText: {
-    marginTop: 8,
+  gridActiveText: {
+    color: "#fff",
     fontSize: 9,
     fontWeight: "800",
-    color: "#1B3A6B",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
   },
-  smallCardTextActive: {
-    color: "#FFFFFF",
+  gridInactiveText: {
+    color: Colors.navy,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
   },
   dateRow: {
+    width: "100%",
     height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#1B3A6B",
     paddingHorizontal: 20,
+    borderRadius: 28,
+    backgroundColor: Colors.card,
+    borderWidth: 2,
+    borderColor: "rgba(27,58,107,0.7)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   dateText: {
-    color: "#1B3A6B",
-    fontWeight: "700",
-  },
-  submitButton: {
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#E91E8C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  submitButtonDisabled: {
-    backgroundColor: "#D1D5DB",
-  },
-  submitButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
+    color: Colors.navy,
+    fontWeight: "600",
     fontSize: 16,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   rowLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#E91E8C",
-    letterSpacing: 1,
+    letterSpacing: 1.4,
+    color: Colors.magenta,
+    textTransform: "uppercase",
   },
   rowValue: {
+    fontWeight: "800",
+    color: Colors.navy,
     fontSize: 14,
-    fontWeight: "700",
-    color: "#1B3A6B",
   },
   rowValueHighlight: {
-    fontSize: 20,
+    fontSize: 18,
   },
 });
